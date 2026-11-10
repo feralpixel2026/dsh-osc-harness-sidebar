@@ -1,25 +1,30 @@
 {
   "name": "dsh-osc-harness-sidebar",
   "version": "0.3.0",
-  "type": "module",
   "description": "Make DeepSeek Harness your own Agent Harness. Reuses the DSH plugin substrate without patching its source, so the native conversation and Agent loop become one capability among the ones you add. Each capability brings its own page and secondary navigation, and groups are arranged visually. DSH supplies the kernel; you decide the shape.",
+  "type": "module",
   "license": "Apache-2.0",
-  "keywords": [
-    "dsh",
-    "deepseek-harness",
-    "cordis",
-    "plugin",
-    "sidebar",
-    "navigation"
-  ],
+  "author": "feralpixel2026",
+  "homepage": "https://github.com/feralpixel2026/dsh-osc-harness-sidebar#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/feralpixel2026/dsh-osc-harness-sidebar.git"
   },
-  "homepage": "https://github.com/feralpixel2026/dsh-osc-harness-sidebar#readme",
   "bugs": {
     "url": "https://github.com/feralpixel2026/dsh-osc-harness-sidebar/issues"
   },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-bundle",
+    "deepseek-harness",
+    "cordis",
+    "sidebar",
+    "navigation",
+    "product-shell",
+    "ai-agent",
+    "agent-harness"
+  ],
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -33,8 +38,25 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md"
   ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js",
+    "test": "node --test \"test/*.test.mjs\"",
+    "verify": "npm run check && npm test",
+    "prepublishOnly": "npm run verify"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (Node ${{ matrix.node }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['22', '24']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 本项目零运行时依赖，没有 package-lock.json。
+      # setup-node 的 cache: npm 要求存在锁文件，否则在 "Setup Node" 步骤直接失败，
+      # 因此这里不开缓存（也没有依赖可缓存）。
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Verify package contents
+        run: npm pack --dry-run

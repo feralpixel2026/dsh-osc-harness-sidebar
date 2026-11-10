@@ -1,0 +1,104 @@
+name: Bug report
+description: 报告一个缺陷
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量把下面每一项填完——缺信息的问题往往需要来回几轮才能定位。
+
+        **安全问题请不要用这个模板**，走 [SECURITY.md](https://github.com/feralpixel2026/dsh-osc-harness-sidebar/blob/main/SECURITY.md) 的私下渠道。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已搜索过现有 Issue，没有找到相同问题
+          required: true
+        - label: 我确认问题出在外壳层（分组 / 排序 / 显隐 / 轨道渲染），而不是某个产品插件
+          required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 实际看到的现象。
+      placeholder: 隐藏「平台域」后，它下面的两个产品没有出现在默认分组里。
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 你期望什么
+      placeholder: 它们应该被追加到默认分组的末尾。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开导航配置
+        2. 取消勾选「平台域」的显示
+        3. 观察左侧轨道
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 插件版本
+      description: 见 `node_modules/dsh-osc-harness-sidebar/package.json` 或 npm 页面
+      placeholder: 0.3.0
+    validations:
+      required: true
+
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH 版本
+      placeholder: 0.2.2-alpha.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - 其他
+    validations:
+      required: true
+
+  - type: dropdown
+    id: form
+    attributes:
+      label: DSH 形态
+      options:
+        - 桌面版
+        - Web 版
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 控制台报错
+      description: 浏览器开发者工具 Console 面板的报错，有就贴。
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充信息
+      description: 截图、装的其他插件、profile 的 `bundles` 列表等。
+    validations:
+      required: false
