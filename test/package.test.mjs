@@ -99,6 +99,54 @@ test('the default group cannot be deleted, hidden, collapsed or renamed', () => 
   assert.match(client, /cannotRename/)
 })
 
+test('a fresh install shows the AI group and hides the business domains', () => {
+  // The business domains belong to plugins the user may not have installed. Showing them by
+  // default puts rows of empty headings in the rail, which reads as a loading failure rather
+  // than as "not installed yet".
+  const hidden = /DEFAULT_HIDDEN_SECTIONS = \[([^\]]*)\]/.exec(client)?.[1] ?? ''
+  for (const id of ['g-pm', 'g-code', 'g-cicd', 'g-sec', 'g-platform']) {
+    assert.ok(hidden.includes(`'${id}'`), `${id} is not hidden by default`)
+  }
+  // The AI group must stay visible: its conversation entry is built in, so it always has content.
+  assert.ok(!hidden.includes("'g-ai'"), 'the AI group must not be hidden by default')
+  // The default group is the anchor for unassigned products and cannot be hidden.
+  assert.ok(!hidden.includes("'g-default'"), 'the default group cannot be hidden')
+})
+
+test('reset writes the factory defaults rather than an empty object', () => {
+  // Writing `{}` also "works" by falling back, but it leaves the stored config looking like a
+  // fresh install, so there is no way to tell a deliberate reset from never having configured.
+  const resetAt = client.indexOf("t('config.reset')")
+  assert.notEqual(resetAt, -1, 'reset button not found')
+  // The label closes the button, so the handler sits in the window before it.
+  const resetHandler = client.slice(Math.max(0, resetAt - 900), resetAt)
+  assert.match(resetHandler, /writeNavConfig\(\{/)
+  assert.match(resetHandler, /hiddenSections:\s*DEFAULT_HIDDEN_SECTIONS/)
+  // The old shape wrote a bare `{}`, which the explicit list above replaces.
+  assert.doesNotMatch(resetHandler, /writeNavConfig\(\{\}\)/)
+})
+
+test('the config page has exactly one entry point', () => {
+  // The config page was reachable two ways: the rail's bottom row and a second row registered
+  // into the host settings dialog. Two entries for one page is a navigation defect, and the
+  // settings one added a modal hop. Only the rail row remains.
+  assert.doesNotMatch(client, /slots\.inject\(\s*'settings\.section'/, 'a settings-panel entry was registered again')
+  // The rail row that should remain.
+  assert.match(client, /selectRail\(NAV_CONFIG_ID\)/)
+  // And the page itself, so removing an entry did not remove the destination.
+  assert.match(client, /slots\.inject\(\s*'main'[\s\S]{0,80}NAV_CONFIG_ID/)
+})
+
+test('both readers fall back to the same default', () => {
+  // The rail and the config page read `hiddenSections` separately. If only one of them used the
+  // default, a fresh install would show a group on the rail that its own settings page calls
+  // hidden, or the reverse.
+  const fallbacks = [...client.matchAll(/config\.hiddenSections\s*\)\s*\?\s*[^:\n]*:\s*([A-Za-z_$][\w$]*)/g)]
+    .map(([, fallback]) => fallback)
+  assert.equal(fallbacks.length, 2, `expected two readers, found ${fallbacks.length}`)
+  for (const fallback of fallbacks) assert.equal(fallback, 'DEFAULT_HIDDEN_SECTIONS')
+})
+
 test('the docs describe the default group the way the code behaves', () => {
   // The README once claimed the default group could be renamed while the handler refused it.
   // Prose and behaviour drifted because nothing checked them together; this couples them.

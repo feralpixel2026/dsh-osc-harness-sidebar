@@ -178,7 +178,7 @@ window.__ModuleLoader__.load({
       flex: 0 0 auto; padding: 0 3px;
       border-radius: 2px; height: 14px; line-height: 14px;
       background: var(--dsw-alias-label-primary);
-      color: var(--dsw-alias-label-primary-inverted, #fff);
+      color: var(--dsw-alias-label-primary-inverted, var(--dsw-alias-bg-base));
       font-size: 8.5px; font-weight: 700;
       letter-spacing: 0.2px; text-transform: uppercase;
       white-space: nowrap;
@@ -349,46 +349,46 @@ window.__ModuleLoader__.load({
     .pn-cfg {
       height: 100%; box-sizing: border-box; overflow-y: auto;
       padding: 24px; padding-top: 12px; border-radius: 12px;
-      background: #fff;
-      color: #1e2a3d;
+      background: var(--dsw-alias-bg-base);
+      color: var(--dsw-alias-label-primary);
       font: 13px/1.8 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
     .pn-cfg-head {
       display: flex; align-items: flex-start; gap: 16px;
       padding-bottom: 16px; margin-bottom: 16px;
-      border-bottom: 1px solid #ecedf0;
+      border-bottom: 1px solid var(--dsw-alias-border-l2);
     }
-    .pn-cfg-title { font-size: 17px; font-weight: 600; color: #1e2a3d; line-height: 1.4; }
-    .pn-cfg-sub { margin-top: 4px; font-size: 13px; color: #5a5b70; }
+    .pn-cfg-title { font-size: 17px; font-weight: 600; color: var(--dsw-alias-label-primary); line-height: 1.4; }
+    .pn-cfg-sub { margin-top: 4px; font-size: 13px; color: var(--dsw-alias-label-tertiary); }
     .pn-cfg-actions { display: flex; gap: 8px; margin-left: auto; flex: 0 0 auto; }
     .pn-btn {
       height: 32px; padding: 0 16px; border-radius: 6px; cursor: pointer;
-      border: 1px solid #e2e5ea; background: #fff; color: #4d545e;
+      border: 1px solid var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-secondary);
       font: inherit; font-size: 13px;
       transition: border-color .2s, color .2s, background .2s;
     }
-    .pn-btn:hover { border-color: #6049e7; color: #6049e7; }
-    .pn-btn-primary { border-color: #6049e7; color: #6049e7; }
-    .pn-btn-primary:hover { background: #6049e7; color: #fff; }
+    .pn-btn:hover { border-color: var(--dsw-alias-brand-primary); color: var(--dsw-alias-brand-primary); }
+    .pn-btn-primary { border-color: var(--dsw-alias-brand-primary); color: var(--dsw-alias-brand-primary); }
+    .pn-btn-primary:hover { background: var(--dsw-alias-brand-primary); color: var(--dsw-alias-bg-base); }
 
     /* 行式列表：每行一张白卡，行间 10px 由 borderSpacing 给出。 */
     .pn-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
     .pn-table thead th {
       padding: 0 12px 4px; text-align: left;
-      font-size: 12px; font-weight: 500; color: #848c9f; white-space: nowrap;
+      font-size: 12px; font-weight: 500; color: var(--dsw-alias-label-quaternary); white-space: nowrap;
     }
     .pn-table tbody td {
-      padding: 12px; background: #fff; vertical-align: middle;
-      border-top: 1px solid #ecedf0; border-bottom: 1px solid #ecedf0;
+      padding: 12px; background: var(--dsw-alias-bg-base); vertical-align: middle;
+      border-top: 1px solid var(--dsw-alias-border-l2); border-bottom: 1px solid var(--dsw-alias-border-l2);
       transition: background .15s;
     }
     .pn-table tbody td:first-child {
-      border-left: 1px solid #ecedf0; border-radius: 8px 0 0 8px;
+      border-left: 1px solid var(--dsw-alias-border-l2); border-radius: 8px 0 0 8px;
     }
     .pn-table tbody td:last-child {
-      border-right: 1px solid #ecedf0; border-radius: 0 8px 8px 0;
+      border-right: 1px solid var(--dsw-alias-border-l2); border-radius: 0 8px 8px 0;
     }
-    .pn-table tbody tr:hover td { background: #f8f9fc; }
+    .pn-table tbody tr:hover td { background: var(--dsw-specific-sidebar-nav-item-hover); }
     /*
      * 拖动反馈。三类视觉信号各管一件事：
      *   被拖的行——抬起（阴影 + 轻微放大 + 半透明），让用户知道「手上有东西」；
@@ -399,17 +399,17 @@ window.__ModuleLoader__.load({
     .pn-table tbody td { transition: background .15s, border-color .15s, box-shadow .15s, opacity .15s; }
     .pn-row.is-dragging td {
       opacity: .5;
-      box-shadow: 0 6px 16px -4px rgba(9,25,64,.25);
-      background: #f4f5fa;
+      box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--dsw-alias-label-primary) 25%, transparent);
+      background: var(--dsw-specific-sidebar-nav-item-active);
     }
-    .pn-row.is-dragging .pn-handle { cursor: grabbing; color: #6049e7; }
-    .pn-row.is-drop-before td { background: rgba(96,73,231,.05); }
-    .pn-row.is-drop-after td { background: rgba(96,73,231,.05); }
+    .pn-row.is-dragging .pn-handle { cursor: grabbing; color: var(--dsw-alias-brand-primary); }
+    .pn-row.is-drop-before td { background: color-mix(in srgb, var(--dsw-alias-brand-primary) 5%, transparent); }
+    .pn-row.is-drop-after td { background: color-mix(in srgb, var(--dsw-alias-brand-primary) 5%, transparent); }
     /* 插入线画在行卡的上沿/下沿内侧，跟着卡片圆角走。 */
-    .pn-row.is-drop-before td { box-shadow: inset 0 2px 0 0 #6049e7; }
-    .pn-row.is-drop-after td { box-shadow: inset 0 -2px 0 0 #6049e7; }
+    .pn-row.is-drop-before td { box-shadow: inset 0 2px 0 0 var(--dsw-alias-brand-primary); }
+    .pn-row.is-drop-after td { box-shadow: inset 0 -2px 0 0 var(--dsw-alias-brand-primary); }
     .pn-row.is-dragging.is-drop-before td,
-    .pn-row.is-dragging.is-drop-after td { box-shadow: 0 6px 16px -4px rgba(9,25,64,.25); }
+    .pn-row.is-dragging.is-drop-after td { box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--dsw-alias-label-primary) 25%, transparent); }
 
     /*
      * 拖动热区。原来的 ⠿ 字形只有 14px 宽，鼠标偏一两像素就落到文字上，变成选中文本
@@ -421,71 +421,83 @@ window.__ModuleLoader__.load({
       display: flex; align-items: center; justify-content: center;
       width: 40px; height: 40px; border-radius: 6px;
       cursor: grab; user-select: none; -webkit-user-select: none;
-      color: #848c9f; font-size: 15px; line-height: 1;
+      color: var(--dsw-alias-label-quaternary); font-size: 15px; line-height: 1;
       transition: background .15s, color .15s;
     }
-    .pn-handle:hover { background: rgba(96,73,231,.08); color: #6049e7; }
+    .pn-handle:hover { background: color-mix(in srgb, var(--dsw-alias-brand-primary) 8%, transparent); color: var(--dsw-alias-brand-primary); }
     .pn-handle:active { cursor: grabbing; }
     /* 拖动期间整行不参与文本选择，避免鼠标划过去选中一大片。 */
     .pn-row.is-dragging td,
     .pn-table tbody tr[draggable] { user-select: none; -webkit-user-select: none; }
-    .pn-name { color: #1e2a3d; font-weight: 500; }
-    .pn-name-muted { color: #4d545e; font-weight: 400; }
+    .pn-name { color: var(--dsw-alias-label-primary); font-weight: 500; }
+    .pn-name-muted { color: var(--dsw-alias-label-secondary); font-weight: 400; }
     .pn-name-input {
       width: 100%; max-width: 320px; height: 28px; padding: 0 8px;
-      border: 1px solid #6049e7; border-radius: 6px;
-      font: inherit; font-size: 13px; color: #1e2a3d; background: #fff;
+      border: 1px solid var(--dsw-alias-brand-primary); border-radius: 6px;
+      font: inherit; font-size: 13px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base);
     }
-    .pn-name-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(96,73,231,.12); }
+    .pn-name-input:focus { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--dsw-alias-brand-primary) 12%, transparent); }
 
     .pn-cell-count { width: 96px; white-space: nowrap; }
     .pn-count-btn {
       padding: 2px 8px; border: none; border-radius: 6px; cursor: pointer;
-      background: transparent; color: #4d545e;
+      background: transparent; color: var(--dsw-alias-label-secondary);
       font: inherit; font-size: 13px; font-variant-numeric: tabular-nums;
     }
-    .pn-count-btn:hover { background: rgba(0,0,0,.05); color: #6049e7; }
+    .pn-count-btn:hover { background: color-mix(in srgb, var(--dsw-alias-label-primary) 5%, transparent); color: var(--dsw-alias-brand-primary); }
 
     .pn-cell-state, .pn-cell-open { width: 112px; white-space: nowrap; }
     .pn-switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
-    .pn-switch input { margin: 0; cursor: pointer; accent-color: #6049e7; }
+    .pn-switch input { margin: 0; cursor: pointer; accent-color: var(--dsw-alias-brand-primary); }
     .pn-switch input:disabled { cursor: not-allowed; }
-    .pn-switch-text { font-size: 13px; color: #5a5b70; }
+    .pn-switch-text { font-size: 13px; color: var(--dsw-alias-label-tertiary); }
 
     .pn-cell-actions { width: 80px; text-align: right; white-space: nowrap; }
     /* 空操作格用零高占位撑住宽度，与有按钮的行同宽。 */
     .pn-actions-placeholder { display: inline-block; width: 28px; height: 1px; }
+    /* 名称与其后的改名图标。图标默认淡出，hover 名称区时显现——常驻可见会让每一行都多一个
+       视觉重物，而改名是低频操作。 */
+    .pn-name-wrap { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }
+    .pn-rename {
+      display: inline-flex; align-items: center; justify-content: center;
+      flex: 0 0 auto; width: 20px; height: 20px; padding: 0;
+      border: none; border-radius: 4px; background: transparent;
+      color: var(--dsw-alias-label-quaternary); cursor: pointer;
+      opacity: 0; transition: opacity .15s, background .15s, color .15s;
+    }
+    .pn-row:hover .pn-rename, .pn-rename:focus-visible { opacity: 1; }
+    .pn-rename:hover { background: var(--dsw-specific-sidebar-nav-item-hover); color: var(--dsw-alias-brand-primary); }
     .pn-link {
       padding: 2px 6px; border: none; border-radius: 6px; cursor: pointer;
-      background: transparent; color: #6049e7; font: inherit; font-size: 13px;
+      background: transparent; color: var(--dsw-alias-brand-primary); font: inherit; font-size: 13px;
     }
-    .pn-link:hover { background: rgba(96,73,231,.08); }
-    .pn-link-danger { color: #848c9f; }
-    .pn-link-danger:hover { color: #de350d; background: rgba(222,53,13,.06); }
+    .pn-link:hover { background: color-mix(in srgb, var(--dsw-alias-brand-primary) 8%, transparent); }
+    .pn-link-danger { color: var(--dsw-alias-label-quaternary); }
+    .pn-link-danger:hover { color: var(--dsw-alias-state-error-primary); background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 6%, transparent); }
 
     /* 展开后的产品子行：贴在分组行下方，不重复画卡边。 */
     .pn-subrow td {
-      padding: 0 12px 12px; background: #f9fafd;
-      border-left: 1px solid #ecedf0; border-right: 1px solid #ecedf0;
-      border-bottom: 1px solid #ecedf0; border-radius: 0 0 8px 8px;
+      padding: 0 12px 12px; background: var(--dsw-alias-bg-layer-1);
+      border-left: 1px solid var(--dsw-alias-border-l2); border-right: 1px solid var(--dsw-alias-border-l2);
+      border-bottom: 1px solid var(--dsw-alias-border-l2); border-radius: 0 0 8px 8px;
       border-top: none;
     }
-    .pn-subcell { font-size: 13px; color: #5a5b70; }
+    .pn-subcell { font-size: 13px; color: var(--dsw-alias-label-tertiary); }
     .pn-chips { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
     .pn-chip {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 4px 10px; border-radius: 999px;
-      border: 1px solid #ecedf0; background: #fff;
-      font-size: 12px; color: #4d545e; cursor: grab;
+      border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-base);
+      font-size: 12px; color: var(--dsw-alias-label-secondary); cursor: grab;
     }
-    .pn-chip:hover { border-color: #6049e7; color: #1e2a3d; }
-    .pn-chip input { margin: 0; cursor: pointer; accent-color: #6049e7; }
+    .pn-chip:hover { border-color: var(--dsw-alias-brand-primary); color: var(--dsw-alias-label-primary); }
+    .pn-chip input { margin: 0; cursor: pointer; accent-color: var(--dsw-alias-brand-primary); }
 
     .pn-cfg-foot {
       display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-      margin-top: 4px; font-size: 13px; color: #848c9f;
+      margin-top: 4px; font-size: 13px; color: var(--dsw-alias-label-quaternary);
     }
-    .pn-cfg-tip { color: #848c9f; }
+    .pn-cfg-tip { color: var(--dsw-alias-label-quaternary); }
     `
 
 
@@ -607,6 +619,20 @@ window.__ModuleLoader__.load({
     /** The `main` key the navigation-config page registers under. */
     const NAV_CONFIG_ID = 'product-nav-config'
 
+    /**
+     * Groups the rail leaves out until the user turns them on.
+     *
+     * A fresh install should show the AI Harness group and nothing else: the business domains
+     * belong to plugins the user has not installed yet, so showing them by default puts rows of
+     * empty headings in the rail and reads as a loading failure. `g-ai` is the one group that
+     * always has content, because the conversation entry is built in.
+     *
+     * `g-default` is deliberately absent: it is the anchor that receives unassigned products
+     * and cannot be hidden. Hiding it here would contradict the rule enforced by the config
+     * page and leave those rows with nowhere to land.
+     */
+    const DEFAULT_HIDDEN_SECTIONS = ['g-pm', 'g-code', 'g-cicd', 'g-sec', 'g-platform']
+
     /** Where the navigation preferences live. One key, one owner. */
     const NAV_CONFIG_KEY = 'dsh.productNav.config'
 
@@ -688,7 +714,10 @@ window.__ModuleLoader__.load({
      * @returns the groups to render, in display order.
      */
     function resolveSections(config, t, includeHidden = false) {
-      const hidden = Array.isArray(config.hiddenSections) ? config.hiddenSections : []
+      // An absent list means "nothing has been configured yet", which is not the same as "show
+      // everything": the factory default hides the business domains. An empty array is the
+      // user's own choice to show them all, so it is honoured as-is.
+      const hidden = Array.isArray(config.hiddenSections) ? config.hiddenSections : DEFAULT_HIDDEN_SECTIONS
       const labels = config.sectionLabels !== null && typeof config.sectionLabels === 'object' ? config.sectionLabels : {}
       const order = Array.isArray(config.sectionOrder) ? config.sectionOrder : []
       const custom = Array.isArray(config.customSections) ? config.customSections : []
@@ -706,10 +735,15 @@ window.__ModuleLoader__.load({
         .filter((entry) => !SECTIONS.some((section) => section.id === entry.id))
         .map((entry) => ({
           id: entry.id,
+          // `label` is what every consumer reads — the rail draws it, the config page edits
+          // it. Reporting the name under a different key (`customLabel`) left `section.label`
+          // undefined, and because `labelKey` is null the row was then mistaken for the default
+          // group: no title drawn, and its visibility / expand switches locked as if it were
+          // the anchor. Carry the name under the key the readers actually use.
+          label: typeof entry.label === 'string' ? entry.label : entry.id,
           labelKey: null,
           slot: PRODUCT_SLOT,
           builtIn: false,
-          customLabel: typeof entry.label === 'string' ? entry.label : entry.id,
         }))
 
       const all = [...builtIn, ...created]
@@ -757,14 +791,15 @@ window.__ModuleLoader__.load({
         .sort((left, right) => position(left) - position(right) || (left.order ?? 0) - (right.order ?? 0))
         .map((section) => {
           const override = labels[section.id]
-          if (section.customLabel !== undefined) {
-            return { ...section, label: typeof override === 'string' && override !== '' ? override : section.customLabel }
+          const named = typeof override === 'string' && override !== ''
+          // A custom group carries its own `label`; a built-in one resolves through the
+          // dictionary. The anchor has a null `labelKey` and is the only group that ends with a
+          // null label, which is what "draw no title" keys off.
+          if (section.builtIn === false) {
+            return { ...section, label: named ? override : section.label }
           }
           const built = section.labelKey === null ? null : t(section.labelKey)
-          return {
-            ...section,
-            label: section.labelKey === null ? null : (typeof override === 'string' && override !== '' ? override : built),
-          }
+          return { ...section, label: built === null ? null : (named ? override : built) }
         })
     }
 
@@ -831,7 +866,7 @@ window.__ModuleLoader__.load({
       // would delete the only control that can bring a group back.
       const sections = resolveSections(config, t, true)
       const grouped = resolveGrouping(config, sections, products)
-      const hiddenSections = Array.isArray(config.hiddenSections) ? config.hiddenSections : []
+      const hiddenSections = Array.isArray(config.hiddenSections) ? config.hiddenSections : DEFAULT_HIDDEN_SECTIONS
       const hiddenProducts = Array.isArray(config.hiddenProducts) ? config.hiddenProducts : []
 
       const [openSections, setOpenSections] = useState(
@@ -924,7 +959,10 @@ window.__ModuleLoader__.load({
 
       /** 一行一个分组：拖动排序、双击改名、右侧计数与操作。 */
       const row = (section, index) => {
-        const isDefault = section.labelKey === null
+        // Identify the anchor by id, not by `labelKey`: a user-created group also has a null
+        // `labelKey`, and keying off that made every custom group behave like the anchor — no
+        // title drawn, and its visibility / expand switches locked as if it were the anchor.
+        const isDefault = section.id === 'g-default'
         const hidden = hiddenSections.includes(section.id)
         const items = grouped.filter((entry) => entry.section === section.id)
         const isEditing = editing === section.id
@@ -1011,15 +1049,40 @@ window.__ModuleLoader__.load({
                 if (event.key === 'Escape') setEditing(null)
               },
             })
-            : h('span', {
-              className: isDefault ? 'pn-name pn-name-muted' : 'pn-name',
-              title: isDefault ? t('config.cannotRename') : t('config.renameHint'),
-              onDoubleClick: () => {
-                if (isDefault) return
-                setEditing(section.id)
-                setDraftLabel(section.label ?? '')
-              },
-            }, section.label ?? t('config.defaultGroup'))),
+            : h('span', { className: 'pn-name-wrap' },
+              h('span', {
+                className: isDefault ? 'pn-name pn-name-muted' : 'pn-name',
+                title: isDefault ? t('config.cannotRename') : t('config.renameHint'),
+                onDoubleClick: () => {
+                  if (isDefault) return
+                  setEditing(section.id)
+                  setDraftLabel(section.label ?? '')
+                },
+                // Only the anchor falls back to "默认分组". Every other group must show its own
+                // name: a custom group with a null label used to inherit this fallback and
+                // appear as a second 「默认分组」, which reads as duplicated data, not a bug.
+              }, section.label ?? (isDefault ? t('config.defaultGroup') : section.id)),
+              // 改名入口：名称后面一支铅笔。
+              //
+              // 此前只有双击名称，没有任何可见提示，用户找不到。图标贴着名称而不是放进操作
+              // 列，因为操作列的内容各不同（默认分组没有删除按钮），放进去那一列宽度会在行与
+              // 行之间不一致，表头随之错位。
+              isDefault
+                ? null
+                : h('button', {
+                  type: 'button',
+                  className: 'pn-rename',
+                  'aria-label': t('config.rename'),
+                  title: t('config.rename'),
+                  onClick: () => {
+                    setEditing(section.id)
+                    setDraftLabel(section.label ?? '')
+                  },
+                }, h('svg', {
+                  viewBox: '0 0 24 24', width: '12', height: '12',
+                  fill: 'none', stroke: 'currentColor', strokeWidth: '1.8',
+                  strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true',
+                }, h('path', { d: 'M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z' }))))),
         // 产品数：点开看组内产品，可勾选显隐
         h('td', { className: 'pn-cell-count' },
           h('button', {
@@ -1061,9 +1124,9 @@ window.__ModuleLoader__.load({
               },
             }),
             h('span', { className: 'pn-switch-text' }, t('config.open')))),
-        // 操作列。默认分组没有删除入口：它是无业务域产品的落点，删掉它们就没有归处。
-        // 空单元格要保留占位元素，否则 auto 布局下这一格被压到 0 宽，按钮列在行与行
-        // 之间左右错开。
+        // 操作列：只有删除。改名的入口在名称后面那个小图标上，不占这一列——
+        // 放进操作列会让这一列在不同行之间宽度不一致（默认分组没有按钮），
+        // 表头与单元格随之错位。
         h('td', { className: 'pn-cell-actions' },
           isDefault || sections.length <= 1
             ? h('span', { className: 'pn-actions-placeholder', 'aria-hidden': 'true' })
@@ -1124,7 +1187,16 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'pn-btn pn-btn-primary', onClick: () => { addGroup() } },
               t('config.add')),
             h('button', { type: 'button', className: 'pn-btn', onClick: () => {
-              writeNavConfig({})
+              // 写回出厂配置，而不是写一个空对象。
+              //
+              // `{}` 让每个字段回落到各自的默认：`hiddenSections` 回落到
+              // DEFAULT_HIDDEN_SECTIONS，所以观感上确实「恢复了」。但它同时抹掉用户点过这
+              // 个按钮的痕迹——配置里看不出「这是我恢复过的状态」还是「我什么都没设过」。
+              // 写入具体值让两侧一致：点完之后配置里就是出厂那份隐藏列表。
+              writeNavConfig({
+                hiddenSections: DEFAULT_HIDDEN_SECTIONS,
+                openSections: ['g-ai'],
+              })
               setOpenSections(['g-ai'])
               setEditing(null)
             } }, t('config.reset')))),
@@ -1309,7 +1381,8 @@ window.__ModuleLoader__.load({
             .slice()
             .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
           // 空分组仍画标题：新增分组后整组消失会让人以为"没生效"。
-          const isDefault = section.labelKey === null
+          // Same reason as the config page: id, not `labelKey`.
+          const isDefault = section.id === 'g-default'
           const open = isDefault || openSections.includes(section.id)
           return h('div', {
             key: section.id,
@@ -1831,7 +1904,7 @@ window.__ModuleLoader__.load({
         })
 
         // 导航配置页：注册进 `main`（keyed 槽，用自己的唯一 key，不与产品页冲突）。
-        // 两处入口都只是 `selectPanel(NAV_CONFIG_ID)`，所以设置面板和左下角看到的是同一页。
+        // 唯一入口是轨道左下角的「导航配置」，它只做 `selectPanel(NAV_CONFIG_ID)`。
         //
         // `main` 条目的组件 props 由 ui-layout 提供，不含本壳的注入面，所以这里用闭包
         // 直接捕获 `injectProps()` 的结果，而不是把它当作 props 读。
@@ -1842,28 +1915,13 @@ window.__ModuleLoader__.load({
           },
         ))
 
-        // 入口之一：设置面板里的「导航配置」分区。
-        // `settings.section` 是 list 槽，任何插件都能加一项（原生 Agent 预设也用它）。
-        ctx.slots.inject('settings.section', () => ctx.slots.register({
-          name: 'settings.section',
-          id: 'product-nav-config',
-          order: 200,
-          label: () => t('rail.configure'),
-          inject: () => ({ selectRail: injectProps().selectRail }),
-        }, function NavConfigSettingsRow(props) {
-          // 设置面板的一行：点一下跳到配置页。设置面板本身是模态层，
-          // 所以这里只放入口，配置界面仍在主内容区。
-          return h('button', {
-            type: 'button',
-            className: 'pn-cfg-entry',
-            onClick: () => {
-              props.selectRail(NAV_CONFIG_ID)
-              props.close?.()
-            },
-          },
-          h('span', {}, t('rail.configure')),
-          h('span', { 'aria-hidden': 'true' }, '→'))
-        }))
+        // 入口只有侧栏底部那一个。
+        //
+        // 这里曾把同一入口再注册进 `settings.section`，于是 DSH 的设置弹窗里多出第二份
+        // 「导航配置」。同一个功能两个入口，用户不知道该点哪个；设置面板里的那份还多一层
+        // 模态中转（点击后关弹窗、再切主内容区），比直接在轨道底部点一下更绕。
+        //
+        // 保留轨道底部：它和「插件管理」并列，位置固定、不依赖设置面板是否打开。
 
         // 占位页已移除：每个产品现在是自己的插件包，页面由该包注册。壳不再
         // 替未注册的产品画占位——那会让「插件没装上」和「页面还没做」长得一样，
