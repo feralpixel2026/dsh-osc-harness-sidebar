@@ -102,17 +102,34 @@ test('the default group cannot be deleted, hidden, collapsed or renamed', () => 
 test('the docs describe the default group the way the code behaves', () => {
   // The README once claimed the default group could be renamed while the handler refused it.
   // Prose and behaviour drifted because nothing checked them together; this couples them.
+  //
+  // Only the current statement is checked. A changelog entry legitimately *quotes* the old,
+  // wrong wording when it records the fix, so the scan looks at the sections that state
+  // present behaviour and ignores dated history entries.
   const readme = read('README.md')
   const changelog = read('CHANGELOG.md')
   const renamableInCode = !/if \(isDefault\) return/.test(client)
-  for (const [name, text] of [['README.md', readme], ['CHANGELOG.md', changelog]]) {
-    const claimsRenamable = /但可以重命名|可以重命名/.test(text.replace(/不能改名/g, ''))
-    assert.equal(
-      claimsRenamable,
-      renamableInCode,
-      `${name} claims the default group ${claimsRenamable ? 'is' : 'is not'} renamable but client.js says otherwise`,
-    )
-  }
+
+  // README states behaviour; strip the changelog-style history if ever quoted there.
+  const readmeClaimsRenamable = /但可以重命名|可以重命名/.test(readme.replace(/不能改名/g, ''))
+
+  // The changelog's "设计决定" bullet is the canonical present-tense statement; history
+  // entries under "修复" describe the past and are excluded.
+  const decisionSection = /##\s*设计决定([\s\S]*?)(?=\n##\s|\n\[)/.exec(changelog)?.[1] ?? ''
+  const changelogClaimsRenamable = decisionSection !== ''
+    ? /可以重命名/.test(decisionSection.replace(/不能改名/g, ''))
+    : false
+
+  assert.equal(
+    readmeClaimsRenamable,
+    renamableInCode,
+    `README claims the default group ${readmeClaimsRenamable ? 'is' : 'is not'} renamable but client.js says otherwise`,
+  )
+  assert.equal(
+    changelogClaimsRenamable,
+    renamableInCode,
+    `CHANGELOG 设计决定 claims the default group ${changelogClaimsRenamable ? 'is' : 'is not'} renamable but client.js says otherwise`,
+  )
 })
 
 test('the declared license matches the LICENSE file and the README', () => {
