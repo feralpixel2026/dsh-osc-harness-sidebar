@@ -1,0 +1,50 @@
+{
+  "name": "dsh-osc-harness-sidebar",
+  "version": "0.3.0",
+  "type": "module",
+  "description": "Make DeepSeek Harness your own Agent Harness. Reuses the DSH plugin substrate without patching its source, so the native conversation and Agent loop become one capability among the ones you add. Each capability brings its own page and secondary navigation, and groups are arranged visually. DSH supplies the kernel; you decide the shape.",
+  "license": "Apache-2.0",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "sidebar",
+    "navigation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feralpixel2026/dsh-osc-harness-sidebar.git"
+  },
+  "homepage": "https://github.com/feralpixel2026/dsh-osc-harness-sidebar#readme",
+  "bugs": {
+    "url": "https://github.com/feralpixel2026/dsh-osc-harness-sidebar/issues"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  }
+}

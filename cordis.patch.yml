@@ -1,0 +1,18 @@
+# Bundle patch for the Gitee DevOps product navigation (variant A).
+#
+# This bundle takes over the `sidebar` seat and splits the left column in two:
+# the product rail, and the current product's own navigation.
+#
+# ui-sidebar must stay disabled: a child seat can only be declared by the
+# occupant, and its declaration collides with ours (`already declared`). The
+# disable lives here rather than in the profile patch so that disabling this
+# bundle atomically restores the shipped sidebar.
+#
+# ui-layout stays enabled: the frame, the main/right columns and ctx.layout all
+# belong to it, and this plugin does not touch any of them.
+- id: ui-sidebar
+  disabled: true
+
+- insert:
+    - id: dsh-osc-harness-sidebar
+      name: dsh-osc-harness-sidebar

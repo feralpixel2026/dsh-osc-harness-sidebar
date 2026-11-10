@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "OSC Harness Sidebar",
+    "description": "把 DeepSeek Harness 变成你自己的 Agent Harness。复用 DSH 的插件化底座、不改一行源码，原生会话与 Agent 循环成为你新增能力中的一项；每条能力自带页面与二级导航，分组、排序、显隐均可视化配置。DSH 提供内核，你决定它长成什么样。"
+  }
+}

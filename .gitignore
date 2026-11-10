@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Packed artifacts
+*.tgz
+*.tar.gz
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
+npm-debug.log*
