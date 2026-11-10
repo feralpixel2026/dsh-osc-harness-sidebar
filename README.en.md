@@ -11,16 +11,20 @@
 
 `dsh-plugin` `dsh-bundle` `deepseek-harness` `cordis` `sidebar` `navigation` `ai-agent`
 
+DSH designs `sidebar` as a seat, but draws only a session list in it by default. Plugins can attach to that region, but the result tends to become long and complicated. This plugin turns it into a rail that can hold any number of capabilities.
+
 ---
 
 ## Contents
 
 - [Why this exists](#why-this-exists)
 - [The interface](#the-interface)
+- [In practice](#in-practice)
 - [Quick start](#quick-start)
 - [This plugin ships no capabilities](#this-plugin-ships-no-capabilities)
 - [Built-in row: 大肥鱼 DSH](#built-in-row-大肥鱼-dsh)
 - [Navigation settings](#navigation-settings)
+- [Writing a plugin for this rail](#writing-a-plugin-for-this-rail)
 - [How the install works](#how-the-install-works)
 - [Caveats](#caveats)
 - [Compatibility](#compatibility)
@@ -28,7 +32,6 @@
 - [Documentation](#documentation)
 - [Development](#development)
 - [Security boundary](#security-boundary)
-- [Writing a plugin for this rail](#writing-a-plugin-for-this-rail)
 - [Related plugins](#related-plugins)
 - [License](#license)
 
@@ -36,13 +39,11 @@
 
 ## Why this exists
 
-The default DSH sidebar serves a single-conversation app: a session list, plugin management, settings.
+DSH designs the left column as a **seat**: whoever takes it decides what the column looks like. The default `ui-sidebar` takes it and draws a session list — entirely the right shape for a single-conversation app.
 
-When you use DSH as a **multi-capability host** — say, hosting a full DevOps product family — the sidebar has to answer a different question:
+But the region is open by design, and any plugin can take it over. The catch is not taking it over; the catch is that **the column tends to become long and complicated once you do** — capabilities pile into one flat list with no grouping, no hierarchy, and nothing the user can adjust.
 
-> "What can this platform do, how is it grouped, and where do I start?"
-
-This plugin is that shell. It changes no DSH source: it takes over the `sidebar` seat and redraws the left column as two parts:
+This plugin turns that region into a **rail that can hold any number of capabilities**:
 
 ```
 ┌──────────────┬────────────────────────┐
@@ -53,7 +54,17 @@ This plugin is that shell. It changes no DSH source: it takes over the `sidebar`
 └──────────────┴────────────────────────┘
 ```
 
-**The native conversation and agent loop are not replaced — they become one row on the rail**, alongside any capability you add.
+Groups, order and visibility are all configured visually. The native conversation and agent loop are not replaced — they become one row on the rail.
+
+### How it is meant to be used: let DSH write the plugins
+
+Together with DSH's built-in `cordis-plugin-development` capability, **you describe a plugin and DSH writes it** — turning the DSH client into a personal super workbench.
+
+A page plugin only registers one rail row and one page. The prompt can be a single sentence:
+
+> Build a simple page plugin and put it on the `sidebar.products` rail
+
+The registration rules are in [Writing a plugin for this rail](#writing-a-plugin-for-this-rail).
 
 ---
 
@@ -85,6 +96,22 @@ AI Harness
 
 ---
 
+## In practice
+
+Everything below comes from a real local install, after DSH produced plugins from the prompt above on the spot.
+
+<!-- Screenshots: drop images into docs/screenshots/ and uncomment -->
+<!-- ![In practice 1](docs/screenshots/practice-1.png) -->
+<!-- ![In practice 2](docs/screenshots/practice-2.png) -->
+<!-- ![In practice 3](docs/screenshots/practice-3.png) -->
+<!-- ![In practice 4](docs/screenshots/practice-4.png) -->
+<!-- ![In practice 5](docs/screenshots/practice-5.png) -->
+<!-- ![In practice 6](docs/screenshots/practice-6.png) -->
+<!-- ![In practice 7](docs/screenshots/practice-7.png) -->
+<!-- ![In practice 8](docs/screenshots/practice-8.png) -->
+
+---
+
 ## Quick start
 
 ### Requirements
@@ -104,15 +131,18 @@ AI Harness
 
 1. Open the DSH desktop app
 2. Settings → Plugins → Install from npm
-3. Enter `dsh-osc-harness-sidebar`
+3. Enter `dsh-osc-harness-sidebar@latest`
 4. Restart DSH
+
+<!-- Screenshot: Settings → Plugins install screen -->
+<!-- ![Desktop install](docs/screenshots/install-desktop.png) -->
 
 ### Option B: web
 
 From the profile directory (for example `~/.dsh/profiles/desktop/`):
 
 ```sh
-npm install dsh-osc-harness-sidebar
+npm install dsh-osc-harness-sidebar@latest
 ```
 
 Then edit `package.json` in the same directory and add the package to the `bundles` array:
@@ -141,6 +171,8 @@ grep dsh-osc-harness-sidebar ~/.dsh/profiles/desktop/package.json
 ```
 
 After reloading the browser, the left column should be the product rail.
+
+> **Upgrading from an older version**: your existing group visibility settings are kept. To return to the new factory default (only the default group and AI Harness visible), press **Reset** once on the Navigation settings page.
 
 ---
 
@@ -174,7 +206,7 @@ The footer's "Navigation settings" opens the settings page, where you can:
 | Action | Behaviour |
 |---|---|
 | **New group** | The group appears on the rail immediately |
-| **Rename** | Click the pencil next to a group name, or double-click the name; Enter saves |
+| **Rename** | Click the pencil next to the name, or double-click the name; Enter saves |
 | **Reorder** | Drag by the handle at the start of the row, release to apply |
 | **Show / hide** | A hidden group leaves the rail; its products fall back to the default group |
 | **Expanded by default** | Whether the group is expanded when the page opens |
@@ -195,98 +227,7 @@ Changes apply immediately and survive a reload.
 
 ---
 
-## How the install works
-
-DSH's plugin system is Cordis. This plugin ships three files:
-
-| File | Role |
-|---|---|
-| `index.js` | Host entry; `apply()` is empty — no host service is needed |
-| `client.js` | The entire browser-side implementation, loaded by the DSH web shell via the `dsh.client` manifest |
-| `cordis.patch.yml` | Disables `ui-sidebar` and takes the `sidebar` seat |
-
-**Disabling `ui-sidebar` lives in the bundle patch, not in your profile patch** — so uninstalling this plugin restores the native sidebar automatically, with no half-removed state left behind.
-
----
-
-## Caveats
-
-### Mutually exclusive with other sidebar plugins
-
-This plugin takes the `sidebar` seat. **Do not enable it alongside another plugin that takes the same seat**, or you will get an `already declared` error or garbled column widths.
-
-### Dependencies
-
-**Zero runtime dependencies.** It requires no other plugin or shared library and installs and uninstalls on its own.
-
----
-
-## Compatibility
-
-| Item | Value |
-|---|---|
-| DSH | 0.2.x |
-| Node.js | >= 22 |
-| Platform | Web (`dsh.client.platform` is `web`) |
-| Injected client services | `@deepseek-ai/dsh-client-locale`, `@deepseek-ai/dsh-client-ui-slots` |
-
----
-
-## Package layout
-
-A single-file front-end package with **no build step**:
-
-```
-index.js             Host entry (no host service, empty apply)
-client.js            Entire browser-side implementation (~96 KB, styles included)
-cordis.patch.yml     Bundle patch: disables ui-sidebar, takes the sidebar seat
-icon.svg             Icon
-locale/zh.json       Chinese strings
-locale/en.json       English strings
-```
-
-`client.js` is hand-written and verified, and passes through no bundler. Styles ship inline with the package and are attached to the product page container at runtime, scoped to that container so host styles are untouched.
-
----
-
-## Documentation
-
-| File | Contents |
-|---|---|
-| [CHANGELOG.md](CHANGELOG.md) | Version history |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guide |
-| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
-
----
-
-## Development
-
-This repository contains runtime files only; there is no build pipeline.
-
-```sh
-npm run check    # syntax check
-npm test         # run tests
-npm run verify   # check + test (runs automatically before publish)
-```
-
-After editing `client.js`, reload the DSH web interface.
-
----
-
-## Security boundary
-
-This plugin:
-
-- **makes no network requests**
-- **reads no user files** (other than the navigation configuration kept in `localStorage`)
-- **requests no elevated permissions**
-- persists nothing except the group configuration in browser `localStorage`
-
-See [SECURITY.md](SECURITY.md) for how to report a vulnerability.
-
----
-
-## Writing a plugin for this rail
+## Writing a plugin for this rail ⭐⭐⭐⭐⭐
 
 This plugin hard-codes no product. Which rows appear on the rail is decided entirely by plugins registering into slots.
 
@@ -304,6 +245,18 @@ After taking the `sidebar` seat, this plugin declares the following child slots.
 Groups are not slots: **the shell derives a row's group from its id**, and the user can drag any row into any group on the settings page. A new plugin therefore needs to know nothing about group ids.
 
 > The five `sidebar.products.g-*` legacy group slots remain declared only so older plugins do not fail. The shell does not render them; `sidebar.products` is the single collection slot.
+
+### Describing it instead of writing it
+
+No code needed — hand this sentence to DSH:
+
+> Build a simple page plugin and put it on the `sidebar.products` rail
+
+DSH reads the slot protocol in this repository, produces a complete plugin package modelled on the `dsh-product-*` family, and builds it. You only mount it into the profile.
+
+<!-- Screenshots: describing the prompt, then DSH producing the plugin -->
+<!-- ![Prompt-driven development 1](docs/screenshots/prompt-1.png) -->
+<!-- ![Prompt-driven development 2](docs/screenshots/prompt-2.png) -->
 
 ### A minimal working example
 
@@ -404,6 +357,98 @@ Every child-slot registration must happen after `ctx.slots.inject('sidebar', ...
 ### Icons
 
 A product row's icon is provided by the slot content of its `sidebar.products` registration. The shell renders it with `renderSlot(section.slot, { size: 18, active }, { only: entry.id })` — 18 px, with the colour following the selected state.
+
+---
+
+## How the install works
+
+DSH's plugin system is Cordis. This plugin ships three files:
+
+| File | Role |
+|---|---|
+| `index.js` | Host entry; `apply()` is empty — no host service is needed |
+| `client.js` | The entire browser-side implementation, loaded by the DSH web shell via the `dsh.client` manifest |
+| `cordis.patch.yml` | Disables `ui-sidebar` and takes the `sidebar` seat |
+
+**Disabling `ui-sidebar` lives in the bundle patch, not in your profile patch** — so uninstalling this plugin restores the native sidebar automatically, with no half-removed state left behind.
+
+---
+
+## Caveats
+
+### Mutually exclusive with other sidebar plugins
+
+This plugin takes the `sidebar` seat. **Do not enable it alongside another plugin that takes the same seat**, or you will get an `already declared` error or garbled column widths.
+
+### Dependencies
+
+**Zero runtime dependencies.** It requires no other plugin or shared library and installs and uninstalls on its own.
+
+---
+
+## Compatibility
+
+| Item | Value |
+|---|---|
+| DSH | 0.2.x |
+| Node.js | >= 22 |
+| Platform | Web (`dsh.client.platform` is `web`) |
+| Injected client services | `@deepseek-ai/dsh-client-locale`, `@deepseek-ai/dsh-client-ui-slots` |
+
+---
+
+## Package layout
+
+A single-file front-end package with **no build step**:
+
+```
+index.js             Host entry (no host service, empty apply)
+client.js            Entire browser-side implementation (~100 KB, styles included)
+cordis.patch.yml     Bundle patch: disables ui-sidebar, takes the sidebar seat
+icon.svg             Icon
+locale/zh.json       Chinese strings
+locale/en.json       English strings
+```
+
+`client.js` is hand-written and verified, and passes through no bundler. Styles ship inline with the package and are attached to the product page container at runtime, scoped to that container so host styles are untouched.
+
+---
+
+## Documentation
+
+| File | Contents |
+|---|---|
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guide |
+| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
+| [docs/screenshots/](docs/screenshots/) | README screenshots and naming convention |
+
+---
+
+## Development
+
+This repository contains runtime files only; there is no build pipeline.
+
+```sh
+npm run check    # syntax check
+npm test         # run tests
+npm run verify   # check + test (runs automatically before publish)
+```
+
+After editing `client.js`, reload the DSH web interface.
+
+---
+
+## Security boundary
+
+This plugin:
+
+- **makes no network requests**
+- **reads no user files** (other than the navigation configuration kept in `localStorage`)
+- **requests no elevated permissions**
+- persists nothing except the group configuration in browser `localStorage`
+
+See [SECURITY.md](SECURITY.md) for how to report a vulnerability.
 
 ---
 

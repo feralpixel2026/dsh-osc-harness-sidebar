@@ -21,6 +21,24 @@
 
 - **文档与行为不一致**：README 曾称默认分组可以重命名，而代码中双击默认分组会直接返回、不接受改名。现按代码行为统一为「不能改名」，并新增一条测试把 README 与 CHANGELOG 的措辞绑到处理函数上，防止二者再次漂移。
 
+## [0.3.3] - 2026-11-10
+
+README 重写，把「让 DSH 自己写插件」讲成第一用法。代码无变化。
+
+### 新增
+
+- **「实践效果」一节**：装上多项能力后的实际样子，附截图位
+- **「语义化开发」子节**：一句话提示词让 DSH 产出完整插件包，附截图位
+- 快速开始增加**升级提示**：旧配置会覆盖新出厂默认，点一次「恢复默认」即可
+- `docs/screenshots/` 目录与截图命名约定
+- 安装命令改用 `dsh-osc-harness-sidebar@latest`
+
+### 变更
+
+- 简介改为先讲「`sidebar` 是席位、接插件后会变冗长复杂」，再引出本插件的解法
+- 「写一个插件接入这个导航」标为 ⭐⭐⭐⭐⭐，并前移到「安装是怎么做的」之前
+- 重命名说明补上「点名称后的铅笔图标」这一入口
+
 ## [0.3.2] - 2026-11-10
 
 导航配置页的可操作性与主题一致性修复，并补齐扩展文档。
@@ -67,6 +85,7 @@
 - 不能与其他接管 `sidebar` 席位的插件同时启用
 - 轨道上的具体能力需由独立的产品插件注册，本插件只提供外壳
 
+[0.3.3]: https://github.com/feralpixel2026/dsh-osc-harness-sidebar/releases/tag/v0.3.3
 [0.3.2]: https://github.com/feralpixel2026/dsh-osc-harness-sidebar/releases/tag/v0.3.2
 [0.3.1]: https://github.com/feralpixel2026/dsh-osc-harness-sidebar/releases/tag/v0.3.1
 [0.3.0]: https://github.com/feralpixel2026/dsh-osc-harness-sidebar/releases/tag/v0.3.0

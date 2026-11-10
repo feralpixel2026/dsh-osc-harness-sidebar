@@ -11,23 +11,27 @@
 
 `dsh-plugin` `dsh-bundle` `deepseek-harness` `cordis` `sidebar` `navigation` `ai-agent`
 
+DSH 把 `sidebar` 设计成一个席位，但默认只画了会话列表；虽然说这个区域也可以做插件接上去，但是页面还是有些过于【冗长、复杂】，这个插件把它变成能容纳任意能力的导航轨。
+
 ---
 
 ## 目录
 
 - [为什么做这个](#为什么做这个)
 - [界面](#界面)
+- [实践效果](#实践效果)
 - [快速开始](#快速开始)
 - [重要：本插件不含具体能力](#重要本插件不含具体能力)
 - [内置项：大肥鱼 DSH](#内置项大肥鱼-dsh)
 - [导航配置](#导航配置)
+- [写一个插件接入这个导航](#写一个插件接入这个导航)
 - [安装是怎么做的](#安装是怎么做的)
 - [注意事项](#注意事项)
 - [兼容性](#兼容性)
 - [包结构](#包结构)
+- [文档](#文档)
 - [开发](#开发)
 - [安全边界](#安全边界)
-- [写一个插件接入这个导航](#写一个插件接入这个导航)
 - [相关插件](#相关插件)
 - [许可证](#许可证)
 
@@ -35,13 +39,11 @@
 
 ## 为什么做这个
 
-DSH 默认的侧栏服务的是「一个对话应用」：会话列表、插件管理、设置。
+DSH 把左列设计成一个**席位**（seat）：谁占住它，左列就长什么样。默认的 `ui-sidebar` 占着它，画的是会话列表——这对「一个对话应用」是完全合适的形态。
 
-但当你把 DSH 当作一个**多能力宿主**（例如接入一整套 DevOps 产品）时，侧栏要回答的是另一个问题：
+但这个区域本来就是开放的，任何插件都能接管它。问题在于：接上去容易，**接上去之后那一列往往会变得冗长、复杂**——一堆能力挤在同一个列表里，没有分组、没有主次、也不能由用户调整。
 
-> 「这个平台上现在有哪些能力、它们怎么分组、我要先找哪一个？」
-
-这个插件就是那层外壳。它不改 DSH 一行源码，只接管 `sidebar` 席位，把左列重画成两条：
+本插件把这块区域变成**能容纳任意能力的导航轨**：
 
 ```
 ┌──────────────┬────────────────────────┐
@@ -50,7 +52,17 @@ DSH 默认的侧栏服务的是「一个对话应用」：会话列表、插件�
 └──────────────┴────────────────────────┘
 ```
 
-**原生会话与 Agent 循环没有被替换掉，而是变成轨道上的其中一项**，和你新增的能力并列。
+分组、排序、显隐全部可视化配置；原生会话与 Agent 循环没有被替换掉，而是变成轨道上的其中一项。
+
+### 真正的用法：让 DSH 自己写插件
+
+配上 DSH 内置的 `cordis-plugin-development` 能力，**动动嘴就能让 DSH 自己开发插件**，把它变成一个个人的超级工作台。
+
+一个页面插件只需要注册一行导航和一个页面，提示词可以只有一句：
+
+> 做一个简单页面插件，放到 `sidebar.products` 产品导航
+
+协议细节见 [写一个插件接入这个导航](#写一个插件接入这个导航)。
 
 ---
 
@@ -82,6 +94,22 @@ AI Harness
 
 ---
 
+## 实践效果
+
+以下都是在本机实际装好、由 DSH 按上面的提示词当场产出插件后的样子。
+
+<!-- 截图位：把图片放到 docs/screenshots/ 下，再取消注释 -->
+<!-- ![实践效果 1](docs/screenshots/practice-1.png) -->
+<!-- ![实践效果 2](docs/screenshots/practice-2.png) -->
+<!-- ![实践效果 3](docs/screenshots/practice-3.png) -->
+<!-- ![实践效果 4](docs/screenshots/practice-4.png) -->
+<!-- ![实践效果 5](docs/screenshots/practice-5.png) -->
+<!-- ![实践效果 6](docs/screenshots/practice-6.png) -->
+<!-- ![实践效果 7](docs/screenshots/practice-7.png) -->
+<!-- ![实践效果 8](docs/screenshots/practice-8.png) -->
+
+---
+
 ## 快速开始
 
 ### 前置
@@ -101,15 +129,18 @@ AI Harness
 
 1. 打开 DSH 桌面版
 2. 设置 → 插件 → 从 npm 安装
-3. 输入 `dsh-osc-harness-sidebar`
+3. 输入 `dsh-osc-harness-sidebar@latest`
 4. 重启 DSH
+
+<!-- 截图位：设置 → 插件 的安装界面 -->
+<!-- ![桌面版安装](docs/screenshots/install-desktop.png) -->
 
 ### 方式 B：Web 版
 
 在 profile 目录（如 `~/.dsh/profiles/desktop/`）执行：
 
 ```sh
-npm install dsh-osc-harness-sidebar
+npm install dsh-osc-harness-sidebar@latest
 ```
 
 然后编辑同目录的 `package.json`，在 `bundles` 数组中加入：
@@ -138,6 +169,8 @@ grep dsh-osc-harness-sidebar ~/.dsh/profiles/desktop/package.json
 ```
 
 浏览器刷新后，左列应变成产品轨。
+
+> **从旧版本升级**：已有的分组显隐配置会被保留。若希望回到新的出厂默认（只显示默认分组与 AI Harness），在「导航配置」里点一次**恢复默认**。
 
 ---
 
@@ -171,7 +204,7 @@ grep dsh-osc-harness-sidebar ~/.dsh/profiles/desktop/package.json
 | 操作 | 说明 |
 |---|---|
 | **新建分组** | 分组即刻出现在轨道上 |
-| **重命名** | 双击分组名进入编辑，回车保存 |
+| **重命名** | 点分组名后面的铅笔图标，或双击分组名，回车保存 |
 | **拖动排序** | 按住行首的拖动手柄拖动，松手生效 |
 | **显示 / 隐藏** | 隐藏的分组从轨道上消失，其下产品自动落回默认分组 |
 | **默认展开** | 控制该分组进页面时是否展开 |
@@ -192,98 +225,7 @@ grep dsh-osc-harness-sidebar ~/.dsh/profiles/desktop/package.json
 
 ---
 
-## 安装是怎么做的
-
-DSH 的插件系统是 Cordis。本插件提供两个文件：
-
-| 文件 | 作用 |
-|---|---|
-| `index.js` | Host 侧入口，`apply()` 为空——不需要任何 Host 服务 |
-| `client.js` | 浏览器侧全部实现，由 DSH Web shell 通过 `dsh.client` 清单加载 |
-| `cordis.patch.yml` | 禁用 `ui-sidebar`、占用 `sidebar` 席位 |
-
-**禁用 `ui-sidebar` 写在 bundle 补丁里，而不是你的 profile 补丁里**——这样卸载本插件时，原生侧栏会自动恢复，不会留下半残状态。
-
----
-
-## 注意事项
-
-### 与其他侧栏插件互斥
-
-本插件接管 `sidebar` 席位。**不要与其他接管同一席位的侧栏插件同时启用**，否则会出现 `already declared` 错误或列宽错乱。
-
-### 依赖
-
-**零运行时依赖。** 不依赖任何其他插件或共享库，可以单独安装、单独卸载。
-
----
-
-## 兼容性
-
-| 项 | 值 |
-|---|---|
-| DSH | 0.2.x |
-| Node.js | >= 22 |
-| 平台 | Web（`dsh.client.platform` 为 `web`） |
-| 注入的客户端服务 | `@deepseek-ai/dsh-client-locale`、`@deepseek-ai/dsh-client-ui-slots` |
-
----
-
-## 包结构
-
-单文件前端包，**没有构建步骤**：
-
-```
-index.js             Host 侧入口（无 Host 服务，apply 为空）
-client.js            浏览器侧全部实现（约 96 KB，含样式）
-cordis.patch.yml     bundle 补丁：禁用 ui-sidebar，占用 sidebar 席位
-icon.svg             图标
-locale/zh.json       中文文案
-locale/en.json       英文文案
-```
-
-`client.js` 是手写并经过验证的产物，不经过打包器。样式以内联 CSS 形式随包分发，运行时挂到产品页容器上，作用域限定在容器内，不影响宿主样式。
-
----
-
-## 文档
-
-| 文件 | 内容 |
-|---|---|
-| [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南 |
-| [SECURITY.md](SECURITY.md) | 安全策略与漏洞报告 |
-
----
-
-## 开发
-
-本仓库只包含运行时文件，不包含构建流程。
-
-```sh
-npm run check    # 语法检查
-npm test         # 运行测试
-npm run verify   # check + test（发布前自动执行）
-```
-
-修改 `client.js` 后需重新加载 DSH 的 Web 界面。
-
----
-
-## 安全边界
-
-本插件：
-
-- **不发起任何网络请求**
-- **不读取任何用户文件**（除 `localStorage` 保存的导航配置）
-- **不提升任何权限**
-- 唯一的持久化是浏览器 `localStorage` 中的分组配置
-
-安全问题的报告方式见 [SECURITY.md](SECURITY.md)。
-
----
-
-## 写一个插件接入这个导航
+## 写一个插件接入这个导航 ⭐⭐⭐⭐⭐
 
 本插件不硬编码任何产品。轨道上有哪几行，完全由插件通过槽位注册决定。
 
@@ -302,6 +244,18 @@ npm run verify   # check + test（发布前自动执行）
 
 > `sidebar.products.g-*` 这五个旧分组槽仍然保留声明，只为让老插件不报错。壳不渲染它们，`sidebar.products` 才是唯一收集槽。
 
+### 语义化开发
+
+不用写代码，把这句话交给 DSH：
+
+> 做一个简单页面插件，放到 `sidebar.products` 产品导航
+
+DSH 会读本仓库的槽位协议、以 `dsh-product-*` 为模板产出完整插件包并打包好。你只需要把它挂进 profile。
+
+<!-- 截图位：口述提示词 → DSH 产出插件的过程 -->
+<!-- ![语义化开发 1](docs/screenshots/prompt-1.png) -->
+<!-- ![语义化开发 2](docs/screenshots/prompt-2.png) -->
+
 ### 最小可运行示例
 
 一个完整的客户端插件包，注册一行导航和一个页面：
@@ -319,7 +273,7 @@ window.__ModuleLoader__.load({
       apply(ctx) {
         const ID = 'product-hello'
 
-        // ① 轨道上的一行
+        // 1. 轨道上的一行
         ctx.slots.inject('sidebar.products', () => ctx.slots.register({
           name: 'sidebar.products',
           id: ID,
@@ -329,7 +283,7 @@ window.__ModuleLoader__.load({
           return h('span', null, 'Hello')
         }))
 
-        // ② 选中后主内容区的页面
+        // 2. 选中后主内容区的页面
         ctx.slots.inject('main', () => ctx.slots.register(
           { name: 'main', key: ID },
           function Page() {
@@ -401,6 +355,98 @@ ctx.slots.inject('sidebar.columns', () => ctx.slots.register({
 ### 图标
 
 产品行的图标通过 `sidebar.products` 那一行的 slot 内容提供，本插件以 `renderSlot(section.slot, { size: 18, active }, { only: entry.id })` 渲染，尺寸 18、随选中态切换颜色。
+
+---
+
+## 安装是怎么做的
+
+DSH 的插件系统是 Cordis。本插件提供三个文件：
+
+| 文件 | 作用 |
+|---|---|
+| `index.js` | Host 侧入口，`apply()` 为空——不需要任何 Host 服务 |
+| `client.js` | 浏览器侧全部实现，由 DSH Web shell 通过 `dsh.client` 清单加载 |
+| `cordis.patch.yml` | 禁用 `ui-sidebar`、占用 `sidebar` 席位 |
+
+**禁用 `ui-sidebar` 写在 bundle 补丁里，而不是你的 profile 补丁里**——这样卸载本插件时，原生侧栏会自动恢复，不会留下半残状态。
+
+---
+
+## 注意事项
+
+### 与其他侧栏插件互斥
+
+本插件接管 `sidebar` 席位。**不要与其他接管同一席位的侧栏插件同时启用**，否则会出现 `already declared` 错误或列宽错乱。
+
+### 依赖
+
+**零运行时依赖。** 不依赖任何其他插件或共享库，可以单独安装、单独卸载。
+
+---
+
+## 兼容性
+
+| 项 | 值 |
+|---|---|
+| DSH | 0.2.x |
+| Node.js | >= 22 |
+| 平台 | Web（`dsh.client.platform` 为 `web`） |
+| 注入的客户端服务 | `@deepseek-ai/dsh-client-locale`、`@deepseek-ai/dsh-client-ui-slots` |
+
+---
+
+## 包结构
+
+单文件前端包，**没有构建步骤**：
+
+```
+index.js             Host 侧入口（无 Host 服务，apply 为空）
+client.js            浏览器侧全部实现（约 100 KB，含样式）
+cordis.patch.yml     bundle 补丁：禁用 ui-sidebar，占用 sidebar 席位
+icon.svg             图标
+locale/zh.json       中文文案
+locale/en.json       英文文案
+```
+
+`client.js` 是手写并经过验证的产物，不经过打包器。样式以内联 CSS 形式随包分发，运行时挂到产品页容器上，作用域限定在容器内，不影响宿主样式。
+
+---
+
+## 文档
+
+| 文件 | 内容 |
+|---|---|
+| [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南 |
+| [SECURITY.md](SECURITY.md) | 安全策略与漏洞报告 |
+| [docs/screenshots/](docs/screenshots/) | README 截图与命名约定 |
+
+---
+
+## 开发
+
+本仓库只包含运行时文件，不包含构建流程。
+
+```sh
+npm run check    # 语法检查
+npm test         # 运行测试
+npm run verify   # check + test（发布前自动执行）
+```
+
+修改 `client.js` 后需重新加载 DSH 的 Web 界面。
+
+---
+
+## 安全边界
+
+本插件：
+
+- **不发起任何网络请求**
+- **不读取任何用户文件**（除 `localStorage` 保存的导航配置）
+- **不提升任何权限**
+- 唯一的持久化是浏览器 `localStorage` 中的分组配置
+
+安全问题的报告方式见 [SECURITY.md](SECURITY.md)。
 
 ---
 
