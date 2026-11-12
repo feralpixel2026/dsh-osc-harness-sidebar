@@ -41,7 +41,7 @@ npm run verify
 - 一个 PR 只做一件事。与主题无关的重构请单独开 PR。
 - 提交信息用祈使句描述行为变化，例如：
   - `fix: keep default group reachable when its neighbours are hidden`
-  - `feat: allow renaming the default group`
+  - `feat: keep the product rail folded across reloads`
 - 行为有变更时同步更新 `CHANGELOG.md`。
 
 ## 报告问题

@@ -3,89 +3,84 @@
 本文件记录所有值得注意的变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [0.3.1] - 2026-11-10
+## [0.3.5] - 2026-11-12
 
-开源发布配套。代码行为无变化。
+产品轨与原生侧栏对齐，两列宽度定案；补齐触屏与无障碍。
 
 ### 新增
 
-- `README.md` 增加徽章、关键词行、三种安装路径（桌面版 / Web 版 / 会话内）与装完自检步骤
-- `README.md` 增加安全边界一节，逐项列出插件做什么、不做什么
-- `CHANGELOG.md`、`CONTRIBUTING.md`、`SECURITY.md`
-- `test/package.test.mjs`：针对清单、席位补丁与 bundle 不变量的 16 条结构测试
-- CI（Node 22 / 24 × Linux / Windows）与标签触发的发布工作流
-- Issue 模板（bug / feature request）
-- `package.json` 增加 `scripts`、`publishConfig`、`author`、`engines`、`keywords`
+- 产品轨可收成一列图标：点 logo 行在 180px 与 56px 之间切换，状态记入 `localStorage`。这是产品轨自己的折叠轴，与 ui-layout 的整列折叠互不覆盖。
+- 产品轨默认分组末尾的「更多」：**创建你的插件** / **浏览插件**。前者开一个 cordis 会话并预置引导语，让 agent 先找到安装目录、读 README 的接入说明再动手，末尾留产品名称、id、页面内容三个空位。不写死路径（`link:` 与 npm 安装的包目录不同），也不在提示词里内嵌协议（会与 README 漂移）。
+- 右列面板列表末尾的「更多」，还原原生 `ui-sidebar` 的位置（面板行之后、`</nav>` 之前），行来自 `sidebar.panellist.actions` 席位。
+- 两处菜单的图标取自 `@deepseek-ai/dsh-client-ui-primitives`（16 单元坐标系、1px 描边）；弹层用 `position: fixed` 而非 portal——`.pn-nav` 与 `.pn-rail` 都是 `overflow: hidden`，绝对定位会被裁掉。同时补齐 Esc 关闭、点外关闭、方向键漫游、滚动即关。
+- `sidebar.panellist.actions` 终于有出口：该席位一直声明着、`ui-entry-customization` 也一直往里注册，此前没有渲染点。
+- 品牌标兜底：`sidebar.brand.mark` 未注册时画鱼形标，此前品牌行会空一截。
+- `sidebar.columns.collapsed` 席位：注册即强制收起，优先级最高。
+- 主内容区套 `.pn-content-frame`（`container-type: inline-size`），产品按这一列宽度降列而非按视口。
+- 文档：[`docs/integration.md`](docs/integration.md) 四条硬性要求、[`docs/dshell-ui-architecture.md`](docs/dshell-ui-architecture.md) 席位与几何实测记录。
 
 ### 修复
 
-- **文档与行为不一致**：README 曾称默认分组可以重命名，而代码中双击默认分组会直接返回、不接受改名。现按代码行为统一为「不能改名」，并新增一条测试把 README 与 CHANGELOG 的措辞绑到处理函数上，防止二者再次漂移。
+**几何与选中态**
 
-## [0.3.3] - 2026-11-10
+- 折叠产品轨再展开后第二列被压窄、点 logo 看不出变化：三个宽度都曾与宿主回报的列宽联动。`props.width` 是 ui-layout 对「本壳钉下的轨道」的回报，拿它反算会形成循环——收起钉 296 → 宿主回报 296 → 展开时按 296 推算，产品轨回不到 180、导航列只剩 100。改为三处纯常量：`railPx` 展开 180 / 收起 56，`navPx` 恒为 240，`useSoloTrack` 的 `widthFor` 不与 `hostWidth` 比较。
+- 打开右侧面板后产品轨右侧出现空白带：壳在挂载时整体替换 `grid-template-columns`，而 `AppFrame` 每次布局变化都会重写它。改为只替换第一条轨道，并用 `MutationObserver` 在每次重写后重新钉住。
+- 点 FPGA / GJB 5000B 等行时文字变粗并轻微位移：选中态里有一条 `font-weight: 500 !important`，而未选中的行是 400。字重变化会改变字形宽度。原生 `.panelRow` 的选中态只动 `background-color` 与 `color`，字重是排版属性、不是状态通道。
+- 选中大肥鱼后没有选中底色：`selectRail` 把会话行排除在选中记录之外。该排除是为旧版单一 `activeId` 写的，拆出独立轨道选中态后只剩副作用。
+- 点第二列面板行会让产品轨高亮消失：产品行与面板行共用同一个「当前项」。两者已分开，可以同时高亮。
+- 导航行文字是次级灰、悬停才变黑，「更多」菜单看起来像禁用态：原生 `.panelRow` 静置即主色。三处导航行改回主色。
+- 悬停产品行文字不变色、点击后才变：产品行内联 `color` 压过了 `:hover` 规则。内联色已移除。
 
-README 重写，把「让 DSH 自己写插件」讲成第一用法。代码无变化。
+**分组与配置**
 
-### 新增
+- 轨道分组点不开：`toggleSection` 只更新组件状态，渲染却读 `readNavConfig()`。
+- 点分组后隐藏分组重新出现：写回时用了渲染期快照，丢掉了 `hiddenSections`。
+- 勾选任意分组导致默认分组收起：`openSectionsTouched` 被无条件写入，而 `isSectionOpen` 只在默认分组上读它。
 
-- **「实践效果」一节**：装上多项能力后的实际样子，附截图位
-- **「语义化开发」子节**：一句话提示词让 DSH 产出完整插件包，附截图位
-- 快速开始增加**升级提示**：旧配置会覆盖新出厂默认，点一次「恢复默认」即可
-- `docs/screenshots/` 目录与截图命名约定
-- 安装命令改用 `dsh-osc-harness-sidebar@latest`
+**生命周期**
 
-### 变更
+- 关闭插件后原生侧栏空白：profile 补丁的 `ui-sidebar: disabled` 与 bundle 补丁的原子恢复冲突。
+- 关闭插件后界面残留半损坏的列：槽位机制会保留已挂载的组件树，直到下次渲染才抛 `StaleAuthorizationError`。新增席位代次守卫——disposer 先递增代次让残留树渲染 `null`，再拆注册。
+- 插件停用后访问 `ctx.<service>` 抛 `inactive context`：服务改为在 `apply` 时取一次，闭包只引用本地绑定。
 
-- 简介改为先讲「`sidebar` 是席位、接插件后会变冗长复杂」，再引出本插件的解法
-- 「写一个插件接入这个导航」标为 ⭐⭐⭐⭐⭐，并前移到「安装是怎么做的」之前
-- 重命名说明补上「点名称后的铅笔图标」这一入口
+**触屏与无障碍**
+
+- 触屏上点过的行一直保持高亮：21 条 `:hover` 没有媒体查询保护。触屏没有「指针离开」，裸 `:hover` 会粘连。全部逐条包进 `@media (hover: hover)`。
+- 未响应系统「减少动态效果」：新增 `@media (prefers-reduced-motion: reduce)`，把时长压到 0.01ms。清的是时长而非属性，布局与配色仍立即生效。
+- 触屏上聚焦改名输入框会整页放大：iOS Safari 聚焦 font-size < 16px 的输入框时放大整页且失焦不还原。新增 `@media (pointer: coarse)` 下 16px 下限，精确指针保留 13px。
+
+### 兼容
+
+- 记住曾注册过 `sidebar.columns` 的 id，这些 id 不声明 `visible` 也继续占列，升级不会让已在工作的二级导航消失。
+
+### 需要动作
+
+新写的产品插件必须注册 `sidebar.columns.visible`，否则看不到二级导航列。
 
 ## [0.3.2] - 2026-11-10
 
-导航配置页的可操作性与主题一致性修复，并补齐扩展文档。
+### 修复
 
-### 新增
+- 会话行与工作区列表的滚动、以及若干配置项的持久化问题。
 
-- **README 中英双语**：`README.md`（中文）、`README.en.md`（English），顶部互相链接
-- **README 新增「写一个插件接入这个导航」**：槽位清单、最小可运行插件示例、注册字段规则、右列与 `sidebar.columns` 的配合、注册时机、图标约定
-- 默认可见分组收窄：出厂只显示默认分组与 AI Harness，其余业务域分组默认隐藏
+## [0.3.1] - 2026-11-10
 
 ### 修复
 
-- **新建的分组名称错误且开关无响应**：自定义分组的名称存在 `customLabel` 键上，而全部消费方读取 `section.label`，名称恒为 `undefined`；同时默认分组判定写成 `labelKey === null`，而自定义分组的 `labelKey` 同样是 `null`，导致每个新建分组都被当作默认分组——不画标题、显隐与展开开关被锁定。名称统一到 `label`，判定改为按 `id === 'g-default'`
-- **配置页配色不跟随主题**：30 处硬编码颜色改为宿主 `--dsw-*` 变量，深色主题下不再出现白底面板配深色外壳
-- **导航配置有两个入口**：删除 DSH 设置面板中的重复入口，只保留轨道左下角一处
-
-### 变更
-
-- 分组改名入口改为名称后的铅笔图标（悬停显现），不再占用操作列——放进操作列会让该列在不同行之间宽度不一致，表头随之错位
-- 「恢复默认」写入出厂配置而非空对象
-
-## 设计决定
-
-- **默认分组是完全固定的锚点**：它承接所有无归属的产品，因此不能隐藏、不能设为收起、不能删除、不能改名。删除或隐藏其他分组时，其下产品被追加到默认分组末尾而不是消失。
-- **禁用 `ui-sidebar` 写在 bundle 补丁里**，不在 profile 补丁里。这样卸载本插件时原生侧栏自动恢复，不留半残状态。
-- **零运行时依赖**：不 require 任何其他插件或共享库，可单独安装与卸载。
-- **单文件前端包，无构建步骤**：`client.js` 手写并随包分发，样式内联且以 `.pn-` 前缀命名空间化。
-- **内置「大肥鱼 DSH」不拆成独立插件**：它要调用 `ctx.layout.selectPanel(null)` 切回原生会话，那是席位占用者才有的能力。
+- 产品轨的行高、图标与文案对齐原生侧栏。
 
 ## [0.3.0] - 2026-11-10
 
-首个公开发布版本。
+首个公开版本：接管 `sidebar` 席位，产品轨 + 二级导航两列结构。
 
-### 新增
+---
 
-- 接管 DSH `sidebar` 席位，把左列切成产品轨与二级导航两条
-- 导航配置页：分组的新建、重命名、拖动排序、显隐开关、默认展开、删除
-- 内置「大肥鱼 DSH」轨道项，点击回到 DSH 原生会话
-- 分组配置持久化到 `localStorage`，刷新后保留
-- 中英文词典（`locale/zh.json`、`locale/en.json`）
+## 设计决定
 
-### 已知限制
+以下取舍有反例支撑，改动前先看这里。
 
-- 不能与其他接管 `sidebar` 席位的插件同时启用
-- 轨道上的具体能力需由独立的产品插件注册，本插件只提供外壳
-
-[0.3.3]: https://github.com/feralpixel2026/dsh-osc-harness-sidebar/releases/tag/v0.3.3
-[0.3.2]: https://github.com/feralpixel2026/dsh-osc-harness-sidebar/releases/tag/v0.3.2
-[0.3.1]: https://github.com/feralpixel2026/dsh-osc-harness-sidebar/releases/tag/v0.3.1
-[0.3.0]: https://github.com/feralpixel2026/dsh-osc-harness-sidebar/releases/tag/v0.3.0
+- **两列宽度是常量，不参与协商。** 180 + 240 = 420 是设计值。曾经三次尝试让宽度「自适应宿主给的列宽」，每次都因为 `props.width` 本身就是我们钉下的轨道而回报出循环依赖，表现为折叠后展开异常、logo 点击无可见变化。列宽不够是宿主那一侧的事，由 `setSidebar` 负责拉开，不该由内容去将就。
+- **选中态只改背景与文字色。** 字重、字号、字距都是排版属性，改变它们会让被选中的行比相邻行粗一档并左右抖动。
+- **右列是否显示由插件显式声明。** 「注册了产品」与「要显示右列」是两件独立的事，不由外壳推断。
+- **跨插件协作的唯一契约是席位名与 key 字符串。** 两侧各自「成功」，key 不一致则页面永不渲染且没有任何报错——属第三型静默失效。
+- **不接管 `root` 席位。** 本包只换左列，主内容区与整体框架仍是原生的。这也是它叫「外壳底座」而不是「内核」的原因。

@@ -1,6 +1,7 @@
 # dsh-osc-harness-sidebar
 
-> Turn DeepSeek Harness into your own Agent Harness — the shell layer: a configurable product rail.
+> Turn DeepSeek Harness into your own Agent Harness
+> — from a single-mode agent app into an agent plus many products. A shell base for multi-product clients.
 
 [English](README.en.md) | **[中文](README.md)**
 
@@ -17,7 +18,8 @@ DSH designs `sidebar` as a seat, but draws only a session list in it by default.
 
 ## Contents
 
-- [Why this exists](#why-this-exists)
+- [What it solves](#what-it-solves)
+- [This package is the shell only](#this-package-is-the-shell-only)
 - [The interface](#the-interface)
 - [In practice](#in-practice)
 - [Quick start](#quick-start)
@@ -37,35 +39,48 @@ DSH designs `sidebar` as a seat, but draws only a session list in it by default.
 
 ---
 
-## Why this exists
+## What it solves
 
-DSH designs the left column as a **seat**: whoever takes it decides what the column looks like. The default `ui-sidebar` takes it and draws a session list — entirely the right shape for a single-conversation app.
+DSH designs the left column as a **seat**: whoever takes it decides what the column looks like. The default `ui-sidebar` takes it and draws a session list — the right shape for a single-conversation app.
 
-But the region is open by design, and any plugin can take it over. The catch is not taking it over; the catch is that **the column tends to become long and complicated once you do** — capabilities pile into one flat list with no grouping, no hierarchy, and nothing the user can adjust.
+The problem appears once that region is asked to carry more. It is open by design, and any plugin can take it over, but **taking it over is easy while making it legible is not**: capabilities go into the same list one at a time until the column is long and tangled, found by scrolling, with no grouping, no hierarchy, and nothing the user can adjust.
 
-This plugin turns that region into a **rail that can hold any number of capabilities**:
+## What it does
+
+It changes the sidebar from one list into a rail plus one level of sub-navigation:
 
 ```
 ┌──────────────┬────────────────────────┐
 │  Product     │  Sub-navigation of the  │   ← left column, split in two
-│  rail        │  selected capability    │
+│  rail        │  selected product       │
 │  (this       │  (provided by each      │
-│   plugin)    │   capability plugin)    │
+│   plugin)    │   product plugin)       │
 └──────────────┴────────────────────────┘
 ```
 
-Groups, order and visibility are all configured visually. The native conversation and agent loop are not replaced — they become one row on the rail.
+- **Grouping, order and visibility** are configured visually, as local settings — no reinstall.
+- **Nothing native is replaced.** The session list and the agent loop are still there; they become one row on the rail. This is not a different app, it is product capability layered beside the agent.
+- **A product can carry its own sub-navigation.** Taking the `sidebar.columns` seat declares the right column; a product that does not declare it gets no right column. That is an explicit declaration, not a guess by the shell.
 
-### How it is meant to be used: let DSH write the plugins
+## Why this is possible
 
-Together with DSH's built-in `cordis-plugin-development` capability, **you describe a plugin and DSH writes it** — turning the DSH client into a personal super workbench.
+Because DSH is a full Cordis plugin architecture: seats are open, and a page-level product costs about a row plus a page.
 
-A page plugin only registers one rail row and one page. The prompt can be a single sentence:
+Attaching a product needs no change to this plugin, no rebuild, and no release — two registrations and it appears.
 
-> Build a simple page plugin and put it on the `sidebar.products` rail
+## Letting DSH write the plugins
 
-The registration rules are in [Writing a plugin for this rail](#writing-a-plugin-for-this-rail).
+Together with DSH's built-in `cordis-plugin-development` capability, you can grow new capability by describing it. The prompt can be one line:
 
+> make a simple page plugin and put it in the `sidebar.products` rail
+
+Protocol details — two registrations, five surviving fields, the three declarations for a right column — are in [Writing a plugin for this rail](#writing-a-plugin-for-this-rail).
+
+## This package is the shell only
+
+**It ships no products.** After installing you get an empty rail and the native conversation. What it becomes depends on what you attach.
+
+The screenshots in this README come from locally attached product plugins (a Gitee DevOps set). **Those products are not in this package** and are not on npm — they demonstrate what the shell can carry. If you want a ready-made product set, this package is not it.
 ---
 
 ## The interface
@@ -83,6 +98,8 @@ AI Harness
   Ontology                   ← needs dsh-product-ontology
   Platform AI                ← needs dsh-product-platform-ai
 
+  More                       ← last row of the default group: create your plugin / browse plugins
+
 ──── footer ────
   Plugin management
   Navigation settings        ← groups, order and visibility are configured here
@@ -91,8 +108,20 @@ AI Harness
 - **Product rail**: group titles plus one row per registered capability, collapsible
 - **Navigation settings**: add, remove, rename, drag-reorder groups; toggle visibility
 - **大肥鱼 DSH**: the built-in exit — clicking it opens the right column and restores DSH's native navigation
+- **More**: the last row of the default group, described below
 
 **A fresh install shows only these two groups.** The remaining business-domain groups are hidden by default; turn them on in the settings page.
+
+### Two "More" entries
+
+The default group and the panel list each end with a More entry. **They serve different purposes; they are not two copies of one menu.**
+
+| Where | Menu | Purpose |
+|---|---|---|
+| **End of the default group (product rail)** | Create your plugin / Browse plugins | Add something **to this rail**. The first item opens a cordis session with a seeded prompt that asks the agent to locate this package and read the integration section of this README; it leaves product name, id, and page content blank. The second opens plugin management. It lives inside the default group, so folding that group hides it — it is one of that group's rows |
+| **End of the panel list (right column)** | Rows registered into `sidebar.panellist.actions` (unpinned panels and two plugin actions, supplied by `ui-entry-customization`), plus a fallback list of unpinned panels | **Recover a panel you unpinned.** It sits where native `ui-sidebar` puts its own More — after the panel rows — because it is that entry's counterpart in this shell |
+
+The rail entry is **specific to this shell**: native has no equivalent, and its prompt differs (native opens an empty editor). The panel-list entry **restores native behaviour**: `sidebar.panellist.actions` has always been declared and third parties have always registered into it; it simply had no outlet before.
 
 ---
 
@@ -100,15 +129,15 @@ AI Harness
 
 Everything below comes from a real local install, after DSH produced plugins from the prompt above on the spot.
 
-<!-- Screenshots: drop images into docs/screenshots/ and uncomment -->
-<!-- ![In practice 1](docs/screenshots/practice-1.png) -->
-<!-- ![In practice 2](docs/screenshots/practice-2.png) -->
-<!-- ![In practice 3](docs/screenshots/practice-3.png) -->
-<!-- ![In practice 4](docs/screenshots/practice-4.png) -->
-<!-- ![In practice 5](docs/screenshots/practice-5.png) -->
-<!-- ![In practice 6](docs/screenshots/practice-6.png) -->
-<!-- ![In practice 7](docs/screenshots/practice-7.png) -->
-<!-- ![In practice 8](docs/screenshots/practice-8.png) -->
+![Five products on the rail](docs/screenshots/practice-1.png)
+
+![Workspaces and sub-navigation](docs/screenshots/practice-2.png)
+
+![Sessions beside products](docs/screenshots/practice-3.png)
+
+![Collapsed rail](docs/screenshots/practice-4.png)
+
+![Navigation settings](docs/screenshots/practice-5.png)
 
 ---
 
@@ -134,8 +163,6 @@ Everything below comes from a real local install, after DSH produced plugins fro
 3. Enter `dsh-osc-harness-sidebar@latest`
 4. Restart DSH
 
-<!-- Screenshot: Settings → Plugins install screen -->
-<!-- ![Desktop install](docs/screenshots/install-desktop.png) -->
 
 ### Option B: web
 
@@ -227,7 +254,7 @@ Changes apply immediately and survive a reload.
 
 ---
 
-## Writing a plugin for this rail ⭐⭐⭐⭐⭐
+## Writing a plugin for this rail
 
 This plugin hard-codes no product. Which rows appear on the rail is decided entirely by plugins registering into slots.
 
@@ -239,12 +266,17 @@ After taking the `sidebar` seat, this plugin declares the following child slots.
 |---|---|---|
 | `sidebar.products` | list | **Product rows.** One registration = one rail entry |
 | `sidebar.content` | keyed | **Sub-navigation**, rendered in the right column when the product is selected. Optional |
-| `sidebar.columns` | list | Declares "keep the right column while I am selected" |
+| `sidebar.columns` | list | Declares "I have a column prepared" |
+| `sidebar.columns.visible` | list | Declares "that column takes up space right now" |
+| `sidebar.columns.collapsed` | list | Declares "force that column collapsed"; highest priority |
 | `sidebar.rail.account` | list | Footer extension point, directly below "Plugin management" |
+| `sidebar.panellist.actions` | list | Rows in the panel list's More menu. Register here and the row appears there |
 
 Groups are not slots: **the shell derives a row's group from its id**, and the user can drag any row into any group on the settings page. A new plugin therefore needs to know nothing about group ids.
 
 > The five `sidebar.products.g-*` legacy group slots remain declared only so older plugins do not fail. The shell does not render them; `sidebar.products` is the single collection slot.
+
+> `sidebar.panellist.actions` receives `{ entries, onOpen, onPinnedChange, onDismiss }`: `entries` is the projection of unpinned panels, `onOpen(id)` switches panel, `onPinnedChange(id, pinned)` changes pin state, and `onDismiss()` closes the menu. When nothing is registered the shell lists `entries` itself, so the menu is never empty even without `ui-entry-customization`.
 
 ### Describing it instead of writing it
 
@@ -254,9 +286,6 @@ No code needed — hand this sentence to DSH:
 
 DSH reads the slot protocol in this repository, produces a complete plugin package modelled on the `dsh-product-*` family, and builds it. You only mount it into the profile.
 
-<!-- Screenshots: describing the prompt, then DSH producing the plugin -->
-<!-- ![Prompt-driven development 1](docs/screenshots/prompt-1.png) -->
-<!-- ![Prompt-driven development 2](docs/screenshots/prompt-2.png) -->
 
 ### A minimal working example
 
@@ -322,9 +351,11 @@ The accompanying `package.json` and patch:
 
 `lib/index.js` is the host-side stub: `export function apply() {}` is enough.
 
-### Only five registration fields survive
+### Only three registration fields are read
 
-`slots.register` keeps only `key` / `id` / `order` / `label` / `priority`. **Custom fields on the registration object are discarded** — which is exactly why `sidebar.columns` exists: to keep the right column while a row is selected, register another row into `sidebar.columns`; you cannot hang that on the product row itself.
+This plugin reads three fields off a registration: `id`, `label` and `order`. **Any other custom field is discarded** — which is exactly why `sidebar.columns` exists: to keep the right column while a row is selected, register another row into `sidebar.columns`; you cannot hang that on the product row itself.
+
+(`key` and `priority` are consumed by the slot runtime: the first indexes a `keyed` seat, the second decides contention for a `single` seat. Neither is data this shell reads when rendering.)
 
 ### The right column (sub-navigation)
 
@@ -339,16 +370,33 @@ ctx.slots.inject('sidebar.content', () => ctx.slots.register({
 }))
 ```
 
-Also register a row into `sidebar.columns` to declare "keep the right column while I am selected":
+**Two further declarations are required; neither works alone.** Registering only `sidebar.columns`
+reserves nothing -- this is the easiest mistake to make.
 
 ```js
+// 1. "I have a column prepared"
 ctx.slots.inject('sidebar.columns', () => ctx.slots.register({
   name: 'sidebar.columns',
   id: ID,
 }))
+
+// 2. "that column takes up space right now" -- omit this and no column appears
+ctx.slots.inject('sidebar.columns.visible', () => ctx.slots.register({
+  name: 'sidebar.columns.visible',
+  id: ID,
+}))
 ```
 
-**A product that does not register `sidebar.columns` gets no right column**; the main area uses the full width. This is deliberate: most pages do not need one, and reserving the space unconditionally would waste a quarter of the screen.
+**Why two declarations**: `slots.register` keeps only `key` / `id` / `order` / `label` /
+`priority`, so a plugin cannot attach "does this column have content right now" to the product row.
+With dynamic content the shell still sees "declared" and leaves an empty column behind. Splitting it
+lets the plugin withdraw `visible` when the content is empty, and the shell never has to guess.
+
+**A product that registers neither gets no right column**; the main area uses the full width. Most
+pages do not need one, and reserving the space unconditionally would waste a quarter of the screen.
+
+Register `sidebar.columns.collapsed` (same id) to force it collapsed. It outranks the other two, so
+they need not be withdrawn.
 
 ### Registration timing
 
@@ -357,6 +405,12 @@ Every child-slot registration must happen after `ctx.slots.inject('sidebar', ...
 ### Icons
 
 A product row's icon is provided by the slot content of its `sidebar.products` registration. The shell renders it with `renderSlot(section.slot, { size: 18, active }, { only: entry.id })` — 18 px, with the colour following the selected state.
+
+### Full guide
+
+The above is a quick tour. [docs/writing-a-plugin.md](docs/writing-a-plugin.md) has the step-by-step
+walkthrough, a copyable package layout, style isolation and a pre-flight checklist.
+[docs/integration.md](docs/integration.md) lists the four hard requirements.
 
 ---
 
@@ -392,8 +446,45 @@ This plugin takes the `sidebar` seat. **Do not enable it alongside another plugi
 |---|---|
 | DSH | 0.2.x |
 | Node.js | >= 22 |
-| Platform | Web (`dsh.client.platform` is `web`) |
+| Platform | Web (`dsh.client.platform` is `web`) and the Electron desktop app |
+| Minimum viewport | 390px (the `dsh-responsive-ui` acceptance floor) |
+| Browsers | Safari 16.4+, Chrome 111+, Edge 111+ (uses `color-mix()` and `:has()`) |
 | Injected client services | `@deepseek-ai/dsh-client-locale`, `@deepseek-ai/dsh-client-ui-slots` |
+
+---
+
+## Column geometry
+
+The width this plugin occupies is a **design constant**, not something read back from the host:
+
+| State | Product rail | Navigation column | Whole column |
+|---|---|---|---|
+| Expanded | 180 | 240 | **420** |
+| Rail collapsed | 56 | 240 | 296 |
+| Column collapsed | 56 | — | 56 |
+
+`SIDEBAR_MAX_WIDTH = 420` matches the ui-layout ceiling, and the column is widened to it at start-up through a
+capability probe.
+
+**Do not couple those numbers to `props.width`.** It is ui-layout reporting the track this plugin pinned, so
+deriving the rail width from it is circular: collapsing pins 296, the host reports 296, and on expand the stale
+296 leaves the rail short of 180 and the navigation column at 100. For the same reason `useSoloTrack`'s
+`widthFor` must not clamp to `hostWidth`.
+
+Narrow viewports need no fallback here: ui-layout reports `collapsed` below 1024px and turns the column into a
+drawer over the content below 768px. At 390px this plugin renders a 56px icon rail with no horizontal scroll.
+
+## Touch and accessibility
+
+| Convention | Implementation | Reason |
+|---|---|---|
+| Hover only on pointer devices | All 21 `:hover` rules sit inside `@media (hover: hover)` | A touchscreen has no pointer to leave, so a bare `:hover` latches: the row you tapped stays highlighted until you tap elsewhere, contradicting the real selection |
+| Reduced motion respected | `@media (prefers-reduced-motion: reduce)` cuts transition and animation durations to 0.01ms | Durations are cleared, not properties, so layout and colour still apply immediately |
+| 16px field floor on touch | `@media (pointer: coarse) { .pn-name-input { font-size: 16px } }` | iOS Safari zooms the page when a focused field is under 16px and does not zoom back on blur, distorting the fixed column geometry while it lasts |
+| Selection changes background and ink only | `.pn-item[data-active]` sets no `font-weight` or `font-size` | A weight change alters glyph width, so the selected row turns bolder than its neighbours and shifts sideways |
+
+`(pointer: coarse)` queries the primary pointer rather than the current event, so a hybrid device with a
+trackpad keeps the compact sizes.
 
 ---
 
@@ -403,11 +494,13 @@ A single-file front-end package with **no build step**:
 
 ```
 index.js             Host entry (no host service, empty apply)
-client.js            Entire browser-side implementation (~100 KB, styles included)
+client.js            Entire browser-side implementation (styles included)
 cordis.patch.yml     Bundle patch: disables ui-sidebar, takes the sidebar seat
 icon.svg             Icon
-locale/zh.json       Chinese strings
-locale/en.json       English strings
+locale/zh.json       Package metadata (UI copy is inline in client.js)
+locale/en.json       Package metadata
+docs/                Integration documentation (shipped with the package)
+test/                node --test unit tests (not shipped)
 ```
 
 `client.js` is hand-written and verified, and passes through no bundler. Styles ship inline with the package and are attached to the product page container at runtime, scoped to that container so host styles are untouched.
@@ -421,6 +514,8 @@ locale/en.json       English strings
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guide |
 | [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
+| [docs/writing-a-plugin.md](docs/writing-a-plugin.md) | **Writing a product plugin: step by step** |
+| [docs/integration.md](docs/integration.md) | The four hard requirements |
 | [docs/screenshots/](docs/screenshots/) | README screenshots and naming convention |
 
 ---
