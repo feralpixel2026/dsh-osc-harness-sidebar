@@ -1,6 +1,6 @@
 {
   "name": "dsh-osc-harness-sidebar",
-  "version": "0.3.6",
+  "version": "0.3.8",
   "description": "Make DeepSeek Harness your own Agent Harness. Reuses the DSH plugin substrate without patching its source, so the native conversation and Agent loop become one capability among the ones you add. Each capability brings its own page and secondary navigation, and groups are arranged visually. DSH supplies the kernel; you decide the shape.",
   "type": "module",
   "license": "Apache-2.0",

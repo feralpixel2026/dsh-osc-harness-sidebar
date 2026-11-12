@@ -3,7 +3,7 @@
 本文件记录所有值得注意的变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [0.3.6] - 2026-11-13
+## [0.3.8] - 2026-11-13
 
 macOS 窗口顶带适配（hiddenInset 红绿灯），并修复 AI Harness 分组默认收起。
 
@@ -15,7 +15,7 @@ macOS 窗口顶带适配（hiddenInset 红绿灯），并修复 AI Harness 分�
 ### 修复
 
 - **AI Harness 分组首次安装不展开**：`isSectionOpen` 只给 `g-default` 开了「未配置即展开」的特例，其他分组一律返回 false——写进 `openSections` 也只在配置存过之后才生效。改为读 `DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']`，初始值、恢复默认、渲染判定三处共用这一份。
-- **收起态两个顶带按钮无 hover**：原先 `position: fixed` 钉在视口 (88, 12) / (124, 12)。整列收到 0px 后 `.sidebarCol` 的 `overflow: hidden` 把按钮裁掉；产品轨收成 56px 时又落到列外。改为在轨道内按流排布，并在整列隐藏时由 `shell.leading` 座接管。
+- **收起态两个顶带按钮无 hover**：原先 `position: fixed` 钉在视口 (88, 12) / (124, 12)。整列收到 0px 后 `.sidebarCol` 的 `overflow: hidden` 把按钮裁掉；产品轨收成 56px 时又落到列外。整列隐藏改由 `shell.leading` 座接管（列外挂载，不被裁剪），产品轨收起态的定位一并修正。
 - **新会话按钮点了没反应**：`startSession` 经 `ctx.get('uiWorkspace')` 取服务，但 `uiWorkspace` 未列入 `inject`。`ctx.get` 不等兄弟插件就绪，apply 先跑完时返回 `undefined`，调用静默失败。补进 `inject` 后 Cordis 会等服务就绪再执行。
 - **折叠产品轨时图标闪到右上角**：`.pn-rail` 的 `transition` 含 `padding`，而 macOS 收起态的让位就是一个 52px 上内边距切换。它与 `flex-basis` 同时跑 200ms 线性插值，节奏不同步，图标中途被挤出轨道、动画结束又弹回。padding 退出过渡，只过渡宽度。
 - **红绿灯页的接缝线**：`.pn-rail` 的 `border-right` 画满整列高度，穿过红绿灯那一行。原生在 darwin 下清掉这条边框（该列底是 vibrancy 玻璃，半透明底上压实线读起来像划痕），这里同样移除。
