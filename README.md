@@ -145,9 +145,11 @@ AI Harness
 
 ![会话与产品共存](docs/screenshots/practice-3.png)
 
-![产品轨收起态](docs/screenshots/practice-4.png)
+![产品轨与二级导航（macOS）](docs/screenshots/practice-4.png)
 
-![导航配置页](docs/screenshots/practice-5.png)
+![产品轨收起态](docs/screenshots/practice-5.png)
+
+![导航配置页](docs/screenshots/practice-6.png)
 
 ---
 

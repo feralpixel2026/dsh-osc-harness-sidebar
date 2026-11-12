@@ -220,7 +220,86 @@ window.__ModuleLoader__.load({
     }
 
     const STYLES = `
+    /*
+     * shell.leading 座里的两个按钮。座由框架定位在 (88, 11) 且已设 no-drag，
+     * 这里只负责盒子：红绿灯止于 x 68 → 20px 空档 → 28px → 8px → 28px，
+     * 与原生 .leadingSeat 同量法。
+     */
+    .pn-leading { display: flex; align-items: center; gap: 8px; }
+    .pn-leading-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; margin: 0; padding: 0;
+      border: none; border-radius: var(--dsw-radius-sm, 6px);
+      background: transparent; color: var(--dsw-alias-label-secondary);
+      cursor: pointer; outline: none;
+      -webkit-app-region: no-drag;
+      app-region: no-drag;
+    }
+    @media (hover: hover) {
+    .pn-leading-btn:hover {
+      background: var(--dsw-alias-interactive-bg-hover);
+      color: var(--dsw-alias-label-primary);
+    }
+    }
+    .pn-leading-btn:focus-visible {
+      box-shadow: 0 0 0 var(--dsw-focus-ring-width, 2px) var(--dsw-focus-ring-color, currentColor);
+    }
     .pn-shell { display: flex; height: 100%; min-height: 0; background: var(--dsw-specific-sidebar-fill); }
+    /*
+     * macOS hiddenInset 标题栏：红绿灯落在窗口 (16, 18)，横跨 x 16–68。
+     *
+     * 原生 ui-sidebar 用一条 52px 顶部条避开（SidebarRoot.module.css .topStrip），
+     * 并让这条自己成为窗口拖拽区。本壳整列接管后必须自己补。
+     *
+     * 只在 html[data-platform='darwin'] 下出现：该属性由桌面 preload 设置，
+     * 纯 Web 端拿不到，也就不白占 52px。
+     */
+    /*
+     * macOS：去掉产品轨的右边框。
+     *
+     * 这条线画满整列高度，于是会从 y=0 一路穿过红绿灯那一行（y 18–30），
+     * 看起来像一条穿过窗口控制区的接缝。
+     *
+     * 原生也是这么处理的：ui-layout 给 .sidebarCol 设了这条边框，但随后在
+     * [data-platform='darwin'] 下清成 none——那边列底是窗口的 vibrancy 玻璃，
+     * 半透明底上压一条 0.5px 实线读起来是划痕，不是分隔。
+     *
+     * 两列在 darwin 下靠背景色差分层（轨道 var(--dsw-specific-sidebar-fill)，
+     * 导航列同底），去掉边框仍然分得开。
+     */
+    html[data-platform='darwin'] .pn-rail { border-right: none; }
+
+    .pn-titlebar-strip { display: none; }
+    html[data-platform='darwin'] .pn-titlebar-strip {
+      display: block; flex: none; height: 52px; box-sizing: border-box;
+      /* 与原生 .topStrip 同一条：负上边距吃掉列的 6px 内边距，贴住窗口顶边。 */
+      margin: -6px calc(-1 * var(--dsh-sidebar-inline-padding, 8px)) 0;
+      -webkit-app-region: drag;
+    }
+    /* 收起态的产品轨没有 6px 上内边距（padding: 8px 0 6px），去掉这段抵消。 */
+    html[data-platform='darwin'] .pn-rail[data-collapsed] .pn-titlebar-strip { margin: 0; }
+
+    /*
+     * 内容上提 -12px：原生 .topStrip + .logoRow { margin-top: -12px }，让品牌行
+     * 落在顶部条下沿之上 12px。两列同时提，横向才齐平。
+     */
+    html[data-platform='darwin'] .pn-rail .pn-rail-brand { margin-top: -12px; }
+    html[data-platform='darwin'] .pn-nav > .pn-logo-row { margin-top: -12px; }
+
+    /*
+     * 收起态（56px 图标轨）：轨道比红绿灯窄（68px），顶部条装不下三个灯，
+     * 所以收起时不画条，改成给轨道顶部留出红绿灯的高度，图标从 y=52 起排。
+     *
+     * 原生在 darwin 下直接隐藏整列，没有这个问题；本壳保留图标轨，
+     * 就必须自己让位，否则收起后第一个图标点不到。
+     */
+    /*
+     * 收起轨的红绿灯让位由 JSX 内联 padding 承担（内联压过样式表，写成 CSS 规则
+     * 会被 shorthand 重置——第一次修复就是这么失效的）。这里只保留「收起态不画
+     * 顶部条」：轨道 56px 装不下 x 16–68 的三个灯，画了也盖不住。
+     */
+    html[data-platform='darwin'] .pn-rail[data-collapsed] .pn-titlebar-strip { display: none; }
+
     /* 产品导航宽度固定，右列吃剩余空间；两列之间没有可拖的把手。 */
     .pn-rail {
       display: flex; flex-direction: column;
@@ -230,7 +309,13 @@ window.__ModuleLoader__.load({
       padding: 8px 8px 6px; border-right: 0.5px solid var(--dsw-alias-border-l3);
       background: var(--dsw-specific-sidebar-fill);
       overflow: hidden;
-      transition: flex-basis .2s linear, width .2s linear, padding .2s linear;
+      /*
+       * 只过渡宽度。padding 不参与动画：macOS 收起态的红绿灯让位是一个 52px 的
+       * 上内边距切换，若它和 flex-basis 一起跑 200ms 线性插值，两条曲线的收窄
+       * 节奏不同步——图标会在过渡中途被挤出轨道、动画结束再弹回去，读起来就是
+       * 「先往右上角跑了一下」。
+       */
+      transition: flex-basis .2s linear, width .2s linear;
     }
     .pn-rail[data-collapsed] {
       flex: 0 0 ${RAIL_COLLAPSED_WIDTH}px; width: ${RAIL_COLLAPSED_WIDTH}px;
@@ -502,6 +587,62 @@ window.__ModuleLoader__.load({
     .pn-caption-new {
       display: none;
     }
+    /*
+     * macOS：与 Windows 共用同两个按钮，但落点不同。
+     *
+     * 原生 window chrome 在 (88, 11)：红绿灯止于 x 68 → 20px 空档 → 折叠钮 28px
+     * → 8px → 新会话钮 28px。darwin 的顶带固定 52px 高，按钮垂直居中落在
+     * (52 - 28) / 2 = 12px，与原生 .leadingSeat 的 top 11 差 1px，取整可接受。
+     *
+     * 与 Windows 的差异：darwin 不隐藏整列，所以折叠钮常驻、新会话钮只在
+     * 收起态出现（展开态由品牌行/列内的新会话按钮承担，避免重复入口）。
+     */
+    html[data-platform='darwin'] .pn-caption-toggle {
+      position: fixed;
+      top: 12px;
+      left: 88px;
+      z-index: 30;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; margin: 0; padding: 0;
+      border: none; border-radius: var(--dsw-radius-sm, 6px);
+      background: transparent; color: var(--dsw-alias-label-secondary);
+      cursor: pointer; outline: none;
+      -webkit-app-region: no-drag;
+      app-region: no-drag;
+    }
+    /*
+     * 只在整列隐藏时出现，与原生 HeaderLeadingControls 同条件
+     * （它由框架在 darwin + collapsed 时挂载）。
+     *
+     * 不能无条件显示：.pn-shell 是三条布局分支的外层，展开态也在其中，那样
+     * 顶带上会多出一个与列内「+ 新会话」重复的入口——而且它 fixed 在
+     * (124, 12)，正好压在导航列右上角，看起来像列内按钮失灵。
+     */
+    html[data-platform='darwin'] [data-sidebar-collapsed] .pn-caption-new {
+      position: fixed;
+      top: 12px;
+      left: 124px;
+      z-index: 30;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; margin: 0; padding: 0;
+      border: none; border-radius: var(--dsw-radius-sm, 6px);
+      background: transparent; color: var(--dsw-alias-label-secondary);
+      cursor: pointer; outline: none;
+      -webkit-app-region: no-drag;
+      app-region: no-drag;
+    }
+    /*
+     * 全屏隐藏红绿灯（桌面 preload 把窗口状态镜像到 html[data-fullscreen]），
+     * 控件因此要把红绿灯那段让位收回来，落到 x=12——与原生
+     * AppFrame.module.css 的 [data-fullscreen] .leadingSeat { left: 12px } 同一量法。
+     * 占了红绿灯的位置，新会话钮跟着左移 36px（28 + 8）。
+     */
+    html[data-platform='darwin'][data-fullscreen] .pn-caption-toggle {
+      left: 12px;
+    }
+    html[data-platform='darwin'][data-fullscreen] .pn-caption-new {
+      left: 48px;
+    }
     html[data-windows-titlebar] .pn-caption-toggle {
       position: fixed;
       top: calc((var(--dsh-windows-titlebar-height, 40px) - 28px) / 2);
@@ -531,17 +672,22 @@ window.__ModuleLoader__.load({
     /* 触屏无指针离开，裸 :hover 会粘连；原生 .panelRow 同样包这层（SidebarRoot.module.css:705）。 */
     /* 触屏无指针离开，裸 :hover 会粘连；原生 .panelRow 同样包这层（SidebarRoot.module.css:705）。 */
     @media (hover: hover) {
+    html[data-platform='darwin'] .pn-caption-toggle:hover,
+    html[data-platform='darwin'] .pn-caption-new:hover,
     html[data-windows-titlebar] .pn-caption-toggle:hover,
     html[data-windows-titlebar] .pn-caption-new:hover {
       background: var(--dsw-alias-interactive-bg-hover);
       color: var(--dsw-alias-label-primary);
     }
     }
+    html[data-platform='darwin'] .pn-caption-toggle:focus-visible,
+    html[data-platform='darwin'] .pn-caption-new:focus-visible,
     html[data-windows-titlebar] .pn-caption-toggle:focus-visible,
     html[data-windows-titlebar] .pn-caption-new:focus-visible {
       box-shadow: 0 0 0 var(--dsw-focus-ring-width, 2px) var(--dsw-focus-ring-color, currentColor);
     }
     html[data-windows-titlebar] .pn-caption-toggle[disabled] { opacity: .45; cursor: default; }
+    html[data-platform='darwin'] .pn-caption-toggle[disabled] { opacity: .45; cursor: default; }
     /* 收起后品牌行高度归零，与原生 .root.collapsed .logoRow 一致；两个按钮因 fixed 不受影响。 */
     /*
      * Windows 桌面的 logo 行：保留左侧 8px，只把高度压到 40。
@@ -1402,6 +1548,15 @@ window.__ModuleLoader__.load({
      */
     const DEFAULT_HIDDEN_SECTIONS = ['g-pm', 'g-code', 'g-cicd', 'g-sec', 'g-platform']
 
+/**
+ * Groups expanded before the user changes anything.
+ *
+ * `g-default` is where unassigned product rows land (`sidebar.products`), and
+ * `g-ai` carries the AI Harness group. Both the initial state, the reset action,
+ * and `isSectionOpen` read this list, so the three cannot drift.
+ */
+const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
+
     /** Where the navigation preferences live. One key, one owner. */
     const NAV_CONFIG_KEY = 'dsh.productNav.config'
 
@@ -1451,12 +1606,28 @@ window.__ModuleLoader__.load({
     return products.map((entry) => String(entry.id)).filter((id) => !builtIn.has(id))
   }
 
+  /**
+   * Whether a group renders expanded.
+   *
+   * Two sources, in order: what the user configured, then the factory default.
+   * The factory list is consulted only while the user has not touched the expand
+   * settings — after that their choice is authoritative, including a choice that
+   * closed a group the factory opens.
+   *
+   * Previously the factory branch was hardcoded to `g-default`, so every other
+   * group — `g-ai` among them — was shut unless a saved config happened to
+   * include it. That is why AI Harness arrived collapsed on a fresh install.
+   *
+   * @param config - the stored navigation preferences.
+   * @param sectionId - group id being rendered.
+   * @returns true when the group's rows are visible.
+   */
   function isSectionOpen(config, sectionId) {
     const open = Array.isArray(config.openSections) ? config.openSections : []
     if (open.includes(sectionId)) return true
-    if (sectionId !== 'g-default') return false
-    // 用户从未改过展开设置：默认分组按出厂值（展开）算。
+    // 用户从未改过展开设置：按出厂名单算。改动过就以用户的选择为准。
     return !(Array.isArray(config.openSections) && config.openSectionsTouched === true)
+      && DEFAULT_OPEN_SECTIONS.includes(sectionId)
   }
 
   function readNavConfig() {
@@ -1800,7 +1971,9 @@ window.__ModuleLoader__.load({
       const hiddenProducts = resolveHiddenProducts(config, products)
 
       const [openSections, setOpenSections] = useState(
-        Array.isArray(config.openSections) && config.openSections.length > 0 ? config.openSections : ['g-ai'])
+        Array.isArray(config.openSections) && config.openSections.length > 0
+          ? config.openSections
+          : DEFAULT_OPEN_SECTIONS)
       // 正在编辑名称的分组 id；null 表示没有行处于编辑态。
       const [editing, setEditing] = useState(null)
       const [draftLabel, setDraftLabel] = useState('')
@@ -2264,9 +2437,9 @@ window.__ModuleLoader__.load({
               writeNavConfig({
                 hiddenSections: DEFAULT_HIDDEN_SECTIONS,
                 hiddenProducts: productRows,
-                openSections: ['g-ai'],
+                openSections: DEFAULT_OPEN_SECTIONS,
               })
-              setOpenSections(['g-ai'])
+              setOpenSections(DEFAULT_OPEN_SECTIONS)
               setEditing(null)
             } }, t('config.reset')))),
         // 表格：每行一张白卡
@@ -2398,6 +2571,9 @@ window.__ModuleLoader__.load({
 
     function ProductSidebar(props) {
       const { collapsed, drawer, renderSlot, renderFactorySlot, t, menuEntries, setPinnedRow, openPluginList, createPlugin, createNavPlugin } = props
+      // 桌面端标记由 preload 设置，最晚在 DOMContentLoaded 才到，所以每次渲染都读。
+      const darwinDesktop = typeof document !== 'undefined'
+        && document.documentElement.dataset.platform === 'darwin'
       const wide = drawer || !collapsed
       // 产品轨自己的折叠态：只收窄产品轨，不折叠 DSH 的整列。两者是独立的轴，
       // 合成一个布尔值会让 DSH 的折叠按钮和 logo 行抢同一个状态。
@@ -2605,7 +2781,19 @@ window.__ModuleLoader__.load({
           flex: `0 0 ${railPx}px`,
           width: `${railPx}px`,
           boxSizing: 'border-box',
-          padding: wide ? '8px 8px 6px' : '8px 0 6px',
+          /*
+         * macOS hiddenInset：图标轨让出红绿灯（x 16–68, y 18–30）。
+         *
+         * 判据是 `narrowRail`（本壳自己的折叠轴），不是 `wide`（DSH 整列是否
+         * 折叠）。点 logo 只翻 railCollapsed，wide 仍是 true——按 wide 判会让
+         * 收起态继续走展开分支，图标照样压在灯下。
+         *
+         * 顶部条在这里帮不上忙：轨道 56px 装不下横跨 52px 的三个灯，所以
+         * 收起态不画条，改由内边距让位。内联压过样式表，必须写在这一行上。
+         */
+        padding: narrowRail
+          ? (darwinDesktop ? '52px 0 6px' : '8px 0 6px')
+          : '8px 8px 6px',
           background: 'var(--dsw-specific-sidebar-fill)',
           overflow: 'hidden',
           ...(wide ? {} : { alignItems: 'center' }),
@@ -2613,6 +2801,8 @@ window.__ModuleLoader__.load({
         'aria-label': t('rail.label'),
         ...(narrowRail ? { 'data-collapsed': '' } : {}),
       },
+      // macOS：顶部条让出红绿灯，同时自己就是窗口拖拽区。
+      h('div', { className: 'pn-titlebar-strip', 'data-window-drag': '' }),
       // 品牌行：整列的收展开关交给 ui-layout 自己的按钮，这里只做展示。
       //
       // 三段式对齐右侧原生品牌：[OSCHINA 标志] [字标] [HARNESS 标签]。
@@ -2813,8 +3003,10 @@ window.__ModuleLoader__.load({
       // 把这两个按钮钉在窗口标题栏上，与列内布局无关，所以这里也一样：节点放在根上，
       // 收起与展开两棵树都渲染同一份。
       //
-      // 只在 html[data-windows-titlebar] 时显示。Web 端没有原生标题栏，fixed 会浮在页面上
-      // 遮住内容，那种情况仍用品牌行里那个行内按钮。
+      // 只在 html[data-windows-titlebar] 或 html[data-platform='darwin'] 时显示。
+      // Web 端没有原生标题栏，fixed 会浮在页面上遮住内容，那种情况仍用品牌行里
+      // 那个行内按钮。两条平台用同一对按钮，落点不同：Windows 在 (12, 40px 带内)，
+      // macOS 在 (88, 12) —— 让开 x 16–68 的红绿灯，与原生 .leadingSeat 同构。
       const captionControls = h(React.Fragment, null,
         h('button', {
           type: 'button',
@@ -2905,6 +3097,9 @@ window.__ModuleLoader__.load({
 
       const rightColumn = showDshNav
         ? h(React.Fragment, null,
+          // macOS：与产品轨同一 y 基准，两列内容都从 y=52 起画。没有这条，
+          // 导航列第一行（品牌行）会被红绿灯压住。
+          h('div', { className: 'pn-titlebar-strip', 'data-window-drag': '' }),
           // 品牌行。原生把它包成 button 用来新开会话（macOS 与无权限时退回纯展示），
           // 点击 [data-copy-version] 除外——本地构建的「点版本号复制」仍要走自己的处理。
           h('div', {
@@ -3329,7 +3524,17 @@ window.__ModuleLoader__.load({
     }
 
     return {
-      inject: ['slots', 'layout', 'locale'],
+      /*
+     * uiWorkspace 必须在这里声明。
+     *
+     * 「新会话」「写插件」「打开会话」都走 ctx.get('uiWorkspace').startSession()，
+     * 但 ctx.get 不会等兄弟插件把服务挂上——apply 先跑完时它返回 undefined，
+     * 调用静默失败，表现就是点了按钮毫无反应。
+     *
+     * 声明进 inject 后 Cordis 会等该服务就绪再执行 apply。原生 ui-sidebar 也是
+     * 这么做的：inject: ['slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts']。
+     */
+    inject: ['slots', 'layout', 'locale', 'uiWorkspace'],
 
       apply(ctx) {
         ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'product-nav: dictionaries')
@@ -3671,7 +3876,44 @@ window.__ModuleLoader__.load({
 
           // 内置行：与产品包一样只往单一汇总槽注册，分组由配置决定，
           // 所以这里不再按 seed.section 挑槽位——否则它会落在没人渲染的旧分组槽里。
-          const disposeSeeds = SEEDS.map((seed) => ctx.slots.register({
+          /*
+          * 窗口顶带控件（shell.leading）。
+          *
+          * 整列隐藏时框架把 grid 第一轨压成 0px，而 .sidebarCol 是 overflow: hidden，
+          * 列内任何东西都会被裁掉——列内那套 captionControls 到那时就看不见了。
+          * 框架因此自带一个列外的控件座，只在 darwin + 整列隐藏时挂载
+          * （AppFrame.tsx:286 的 leadingMounted，定位在 (88, 11)，见 AppFrame.module.css
+          * 的 .leadingSeat）。原生由 ui-sidebar 的 HeaderLeadingControls 填它；
+          * 本壳禁用了 ui-sidebar，所以一直是空的。
+          *
+          * 这里填上：展开侧栏 + 新会话。座只在这种状态出现，因此不会与列内的
+          * captionControls 重复。
+          */
+         const disposeLeading = ctx.slots.inject('shell.leading', () => ctx.slots.register({
+           name: 'shell.leading',
+           id: 'dsh-osc-harness-sidebar.leading',
+           order: 10,
+         }, function LeadingControls() {
+           return h('div', { className: 'pn-leading' },
+             h('button', {
+               type: 'button',
+               className: 'pn-leading-btn',
+               title: t('rail.expandColumn'),
+               'aria-label': t('rail.expandColumn'),
+               onClick: () => {
+                 if (typeof props.toggleSidebar === 'function') props.toggleSidebar()
+               },
+             }, h(IconPanelLeft, { size: 16 })),
+             h('button', {
+               type: 'button',
+               className: 'pn-leading-btn',
+               title: t('nav.newSession'),
+               'aria-label': t('nav.newSession'),
+               onClick: () => { props.startSession() },
+             }, h(IconNewChat, { size: 16 })))
+         }))
+
+         const disposeSeeds = SEEDS.map((seed) => ctx.slots.register({
             name: PRODUCT_SLOT,
             id: seed.id,
             order: seed.order,
@@ -3698,6 +3940,7 @@ window.__ModuleLoader__.load({
             // 再渲染一次，那一次就是半翻译、丢样式的状态。
             bumpSeatGeneration()
             for (const dispose of disposeSeeds) dispose()
+            disposeLeading()
             for (const dispose of disposeColumns) dispose()
             disposeRegistration()
           }

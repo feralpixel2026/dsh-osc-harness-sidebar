@@ -135,9 +135,11 @@ Everything below comes from a real local install, after DSH produced plugins fro
 
 ![Sessions beside products](docs/screenshots/practice-3.png)
 
-![Collapsed rail](docs/screenshots/practice-4.png)
+![Rail and sub-navigation on macOS](docs/screenshots/practice-4.png)
 
-![Navigation settings](docs/screenshots/practice-5.png)
+![Collapsed rail](docs/screenshots/practice-5.png)
+
+![Navigation settings](docs/screenshots/practice-6.png)
 
 ---
 
