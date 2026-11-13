@@ -1,4 +1,4 @@
-# Bundle patch for the Gitee DevOps product navigation (variant A).
+# Bundle patch for the product navigation shell.
 #
 # This bundle takes over the `sidebar` seat and splits the left column in two:
 # the product rail, and the current product's own navigation.
