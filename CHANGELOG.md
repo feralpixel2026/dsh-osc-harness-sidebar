@@ -3,6 +3,49 @@
 本文件记录所有值得注意的变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.0] - 2026-11-13
+
+导航配置页的显示、展开、拖拽分组、组内排序四项交互全部重做，修掉一类「看起来没反应、实际是静默失效」的缺陷；另做三项性能优化，切换页面不再有停顿感。
+
+### 修复
+
+**拖拽**
+
+- **跨相邻分组拖不进去、跨多个分组却能进去**：`onDragOver` 用异步 `useState` 判断拖动状态。React 下一个 tick 才提交，首个 `dragover` 读到 `null` 就提前返回，**没有调用 `preventDefault`**，浏览器因此不认为该元素是可落点，随后的 `drop` 完全不触发。指针跨过若干元素后状态已刷新，于是「跨得远反而可以」。全部拖放守卫改读同步 ref。
+- **进入分组后出不来**：四个落点里空组占位与组行空白走 `moveProduct`（改归属），标签与尾部落点只走 `reorderProduct`（只改次序）。落在标签上就永远只换位、不改归属。四处落点统一为「先改归属、再排位」。
+- **拖到紧邻的下一行不动**：`reorder(from, to)` 缺一个维度。删除 `from` 后 `to` 会左移一格，「占据 `to` 的位置」在相邻行上正好还原成原位。改为 `reorder(from, to, side)`，显式传入 `before` / `after`。
+- **拖到别组要拖两次**：`items` 是本次渲染的分组切片，从别组拖来的行不在其中；排序按「不含这一行」的列表算，位置对不上所见。两处落点先把被拖行补进列表再排位。
+- **「更多」的位置总是不对**：`resolveGrouping` 把不在 `productOrder` 里的 id 当作 `MAX_SAFE_INTEGER`，即永远排末尾。而任何一次写入只要漏行，那一行就沉底。「更多」的注册 `order` 同样是 `MAX_SAFE_INTEGER`，两个「最后」叠加，它的位置完全取决于是否在列表中。新增 `fullOrder()`，每次写入都以完整清单为基准，`moveProduct` 也顺带补全顺序。
+- **拖到标签上必抛异常**：`chipList` 定义在 `row` 之前，作用域里没有 `section`，一处 `moveProduct(dragging, section.id)` 每次必抛 `ReferenceError`，在清理拖动状态之前中断——表现为「移动不进去」「高亮残留」「排序错乱」。改走 `onDropInto` 回调。
+- **拖拽高亮残留**：组行 `onDragOver` 的守卫读异步状态，首帧不生效；`onDragLeave` 用 `relatedTarget` 判断，而拖动过程中它通常是 `null`，清理被跳过；进入标签或尾部时也没有人清掉行级高亮。三处一并修正。
+
+**分组与显示**
+
+- **隐藏分组后「分组显示」开关看着没反应**：此前把隐藏分组的产品改挂到默认分组继续显示，行还在、只换了标题。改为整组不渲染。
+- **恢复默认后新建的分组还在**：重置把新值**合并**到旧配置，`customSections`、`sectionLabels`、`sectionOrder`、`productGroups`、`productOrder` 全部被继承。改为写入完整出厂状态，未列出的键即不存在。
+- **空分组接不住拖来的行**：空状态只渲染一行说明，没有任何落点。空占位现在也处理 `dragover` / `drop`。
+- **默认分组的显示与展开开关**：它没有标题行，两个开关都没有可见效果。固定为始终显示、始终展开并禁用开关（悬停说明原因），读取配置时清掉旧数据里对它的隐藏/收起记录。它是所有无归属行的落点，注册不规范的子产品也落到这里。
+- **标签上的三个动作互相干扰**：标签是 `<label>` 包着自己的 `<input type="checkbox">`，HTML 规定点击 label 任意位置都会激活控件，于是拖动、选中、切换显隐共用同一热区。容器改为 `<div>`，复选框自行隔离点击与拖动起点，并补回被一并删掉的 `draggable`。
+
+**状态**
+
+- **`openSections` 有三份状态**：配置页一份 `useState`、轨道一份 `useState`、持久化一份，且两份副本的出厂值不同（`['g-ai']` 与 `DEFAULT_OPEN_SECTIONS`）。删除两份副本，读写统一走 `isSectionOpen` 与 `writeNavConfig`。
+
+### 性能
+
+- `getNavConfigSnapshot` 不再每次渲染读 `localStorage`。它是 `useSyncExternalStore` 的 `getSnapshot`，每次渲染及提交后都会被调用，而 `localStorage` 是同步阻塞 API。改为由 `writeNavConfig` 同步更新内存快照（先更新再通知，否则订阅者读到旧对象会跳过渲染）。
+- 换页包进 `startTransition`：选中态先提交、高亮立即出现，目标页面在后台渲染。总耗时不变，点击不再像没反应。
+- 分组行改为一次建索引（`rowsBySection`），取代每个分组各扫一遍全表再线性查隐藏列表的 O(分组 × 行数)。
+
+### 测试
+
+- 新增 `test/navigation.test.mjs`，覆盖展开状态单一来源、隐藏分组不渲染、默认分组恒显示且恒展开、空组接收拖放、四个落点都能改归属、`reorder` 的相邻行用例、`productOrder` 完整性、拖放守卫一律读 ref、拖放处理器不得引用越界标识符、`chipList` 作用域、索引声明顺序等不变量。用例从 27 增至 47。
+- 保留四个独立模拟器（`tools/_sim-*.mjs`），把真实函数体提取出来跑用例。它们两次证伪了仅通过语法检查与静态断言的修法。
+
+### 移除
+
+- 删除 `.github/workflows/publish.yml`。发布经本地 `npm publish` 完成，仓库内不再保留会自动触发发布的流水线。
+
 ## [0.3.8] - 2026-11-13
 
 macOS 窗口顶带适配（hiddenInset 红绿灯），并修复 AI Harness 分组默认收起。

@@ -89,7 +89,7 @@ test('the rail reads its grouping from configuration, not from slots', () => {
   assert.match(client, /DEFAULT_GROUPS/)
 })
 
-test('the default group cannot be deleted, hidden, collapsed or renamed', () => {
+test('the default group cannot be deleted, hidden or renamed', () => {
   assert.match(client, /g-default/)
   // removeGroup refuses the default group before doing anything else.
   assert.match(client, /removeGroup[\s\S]{0,400}g-default/)
@@ -97,6 +97,10 @@ test('the default group cannot be deleted, hidden, collapsed or renamed', () => 
   assert.match(client, /if \(isDefault\) return/)
   // The refusal is explained to the user rather than failing silently.
   assert.match(client, /cannotRename/)
+  // Expansion is NOT refused: the default group follows the same open/closed
+  // rule as every other group, toggled from the config page because the rail
+  // draws no heading for it.
+  assert.match(client, /DEFAULT_OPEN_SECTIONS = \[[^\]]*'g-default'/)
 })
 
 test('a fresh install shows the AI group and hides the business domains', () => {
@@ -119,11 +123,23 @@ test('reset writes the factory defaults rather than an empty object', () => {
   const resetAt = client.indexOf("t('config.reset')")
   assert.notEqual(resetAt, -1, 'reset button not found')
   // The label closes the button, so the handler sits in the window before it.
-  const resetHandler = client.slice(Math.max(0, resetAt - 900), resetAt)
+  const resetHandler = client.slice(Math.max(0, resetAt - 1400), resetAt)
   assert.match(resetHandler, /writeNavConfig\(\{/)
   assert.match(resetHandler, /hiddenSections:\s*DEFAULT_HIDDEN_SECTIONS/)
   // The old shape wrote a bare `{}`, which the explicit list above replaces.
   assert.doesNotMatch(resetHandler, /writeNavConfig\(\{\}\)/)
+})
+
+test('reset drops everything the user added or changed', () => {
+  // Merging into the stored config carried customSections, sectionLabels,
+  // sectionOrder and productGroups straight through, so "restore defaults" left
+  // the groups the user had created sitting in the table.
+  const resetAt = client.indexOf("t('config.reset')")
+  const resetHandler = client.slice(Math.max(0, resetAt - 1400), resetAt)
+  assert.doesNotMatch(resetHandler, /\.\.\.restConfig/, 'reset must not merge the previous config')
+  for (const key of ['customSections: []', 'sectionLabels: {}', 'sectionOrder: []', 'productGroups: {}', 'productOrder: []']) {
+    assert.ok(resetHandler.includes(key), `${key} must be cleared on reset`)
+  }
 })
 
 test('the config page has exactly one entry point', () => {

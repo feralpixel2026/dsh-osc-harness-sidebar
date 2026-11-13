@@ -148,8 +148,9 @@ window.__ModuleLoader__.load({
       'config.noProducts': 'No navigation rows in this group yet.',
       'config.colName': 'Navigation group',
       'config.colCount': 'Navigation rows',
-      'config.colVisible': 'Visibility',
-      'config.colOpen': 'Default expanded',
+      'config.colVisible': 'Group shown',
+      'config.defaultAlwaysShown': 'The default group holds every ungrouped row, so it is always shown',
+      'config.colOpen': 'Group expanded',
       'config.colActions': 'Actions',
       'config.summary': 'Groups',
       'config.summaryProducts': 'Products',
@@ -212,8 +213,9 @@ window.__ModuleLoader__.load({
       'config.noProducts': '该分组下还没有导航行。',
       'config.colName': '导航分组',
       'config.colCount': '产品导航',
-      'config.colVisible': '显示状态',
-      'config.colOpen': '默认展开',
+      'config.colVisible': '分组显示',
+      'config.defaultAlwaysShown': '默认分组是所有未归组行的落点，固定显示',
+      'config.colOpen': '分组展开/折叠',
       'config.colActions': '操作',
       'config.summary': '分组',
       'config.summaryProducts': '产品',
@@ -356,7 +358,7 @@ window.__ModuleLoader__.load({
        否则 logo 距左边 2px、产品行距左边 8px，两块左边缘错开。 */
     .pn-rail-brand {
       display: flex; align-items: center; gap: 5px; flex: 0 0 auto;
-      width: 100%; height: 48px; padding: 0 8px; margin-bottom: 4px;
+      width: 100%; height: 48px; padding: 0 8px;
       border: none; border-radius: 8px; background: transparent;
       font: inherit; text-align: left; cursor: pointer;
       overflow: hidden; white-space: nowrap;
@@ -1062,11 +1064,16 @@ window.__ModuleLoader__.load({
       margin-right: 3px;
     }
     /* 尾部落点：最后一个标签右边的空白区，拖上去表示「放到最后」。 */
+    /* 尾部落点：「拖到本组最后一位」的热区，不是输入框。
+       早先 flex: 1 1 32px 配 align-self: stretch 会吃掉整行剩余宽度，看起来像一条
+       灰色空框，实际什么都不显示。改成零尺寸：不拖动时不可见，拖动悬停时
+       才展开成一条细线作为落点提示。 */
     .pn-chips-tail {
-      flex: 1 1 32px; min-width: 32px; align-self: stretch; border-radius: 999px;
-      transition: background .15s;
+      flex: 0 0 0; width: 0; min-width: 0; align-self: center; height: 2px;
+      border-radius: 999px; transition: flex-basis .12s, width .12s, background .12s;
     }
     .pn-chips-tail.is-over {
+      flex: 1 1 32px; width: auto; min-width: 32px; height: 6px;
       background: color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent);
       box-shadow: inset 0 0 0 1px var(--dsw-alias-brand-primary);
     }
@@ -1252,7 +1259,7 @@ window.__ModuleLoader__.load({
 
     const React = require('react')
     const h = React.createElement
-    const { useCallback, useEffect, useRef, useState, useSyncExternalStore } = React
+    const { useCallback, useEffect, useRef, useState, useSyncExternalStore, startTransition } = React
 
     /**
      * 为一条 24 单位描边路径生成图标组件。
@@ -1531,6 +1538,9 @@ window.__ModuleLoader__.load({
       Object.entries(DEFAULT_GROUPS).flatMap(([group, ids]) => ids.map((id) => [id, group])),
     )
 
+    /** The anchor group: every row without a declared group falls back here. */
+    const DEFAULT_SECTION_ID = 'g-default'
+
     /** The `main` key the navigation-config page registers under. */
     const NAV_CONFIG_ID = 'product-nav-config'
 
@@ -1622,12 +1632,25 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
    * @param sectionId - group id being rendered.
    * @returns true when the group's rows are visible.
    */
+  /**
+   * 分组是否展开。
+   *
+   * openSections 是唯一依据：配置里有这个数组就照它，没有就是出厂名单。
+   * 曾经这里对默认分组开了一个「未改动过即展开」的特例，副作用有两个：
+   * 收起 AI Harness 会因为出厂名单里有它而立刻弹回；而任何一次展开/收起
+   * 又会把这个特例一并关掉，默认分组随即收起——它没有标题行可点，用户再也
+   * 找不回来。一个分组一套规则，这两个问题就都不存在了。
+   *
+   * @param config - 已读出的导航配置。
+   * @param sectionId - 正在渲染的分组 id。
+   * @returns 该分组的产品行是否可见。
+   */
   function isSectionOpen(config, sectionId) {
-    const open = Array.isArray(config.openSections) ? config.openSections : []
-    if (open.includes(sectionId)) return true
-    // 用户从未改过展开设置：按出厂名单算。改动过就以用户的选择为准。
-    return !(Array.isArray(config.openSections) && config.openSectionsTouched === true)
-      && DEFAULT_OPEN_SECTIONS.includes(sectionId)
+    // 默认分组永远展开：它是无归属行的落点，而且没有标题行可点，收起它等于让那些行
+    // 无处可去。配置里即使写着收起也不认。
+    if (sectionId === DEFAULT_SECTION_ID) return true
+    const open = Array.isArray(config.openSections) ? config.openSections : DEFAULT_OPEN_SECTIONS
+    return open.includes(sectionId)
   }
 
   function readNavConfig() {
@@ -1635,7 +1658,17 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
         const raw = window.localStorage.getItem(NAV_CONFIG_KEY)
         if (raw === null || raw === '') return {}
         const parsed = JSON.parse(raw)
-        return parsed !== null && typeof parsed === 'object' ? parsed : {}
+        if (parsed === null || typeof parsed !== 'object') return {}
+        // 默认分组是落点，不允许隐藏在配置里。旧版本允许关掉它，升级后要顺手清掉，
+        // 否则无归属的行没有去处。
+        if (Array.isArray(parsed.hiddenSections) && parsed.hiddenSections.includes(DEFAULT_SECTION_ID)) {
+          parsed.hiddenSections = parsed.hiddenSections.filter((id) => id !== DEFAULT_SECTION_ID)
+        }
+        // 默认分组恒展开，旧配置里记着「收起」也不该生效，顺手删掉这个无效条目。
+        if (Array.isArray(parsed.openSections)) {
+          parsed.openSections = parsed.openSections.filter((id) => id !== DEFAULT_SECTION_ID)
+        }
+        return parsed
       } catch {
         // A corrupt value must not take the rail down; fall back to the defaults.
         return {}
@@ -1652,6 +1685,9 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
       } catch {
         // Storage can be unavailable (quota, private mode); the in-memory copy still applies.
       }
+      // 先更新快照再通知：订阅者被唤醒时 getSnapshot 必须已经返回新值，
+      // 否则 useSyncExternalStore 会读到旧对象而跳过这次渲染。
+      navConfigSnapshot = next
       navConfigListeners.forEach((listener) => { listener() })
     }
 
@@ -1750,22 +1786,24 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
       return () => { navConfigListeners.delete(listener) }
     }
 
-    /** Current config for `useSyncExternalStore`; a stable object per write keeps it cheap. */
-    let navConfigCache
-    let navConfigCacheSource
+    /**
+     * Current config for `useSyncExternalStore`.
+     *
+     * `getSnapshot` runs on every render and must not do IO: the previous version
+     * called `localStorage.getItem` each time, which is a synchronous main-thread
+     * read. The value is held here and refreshed by `writeNavConfig` and by the
+     * `storage` event, so a read is just a field access.
+     */
+    let navConfigSnapshot
     function getNavConfigSnapshot() {
-      const raw = (() => {
-        try {
-          return window.localStorage.getItem(NAV_CONFIG_KEY) ?? ''
-        } catch {
-          return ''
-        }
-      })()
-      if (navConfigCache === undefined || navConfigCacheSource !== raw) {
-        navConfigCacheSource = raw
-        navConfigCache = readNavConfig()
-      }
-      return navConfigCache
+      navConfigSnapshot ??= readNavConfig()
+      return navConfigSnapshot
+    }
+
+    /** Re-read storage, for the cross-window case and for a first-time mount. */
+    function reloadNavConfigSnapshot() {
+      navConfigSnapshot = readNavConfig()
+      navConfigListeners.forEach((listener) => { listener() })
     }
 
     /**
@@ -1888,9 +1926,29 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
       // `sections`) rather than a new group of its own. Navigation has no separate
       // "ungrouped" area: the default group is where rows without a business domain live,
       // and the rail appends them after the rows already there.
-      const fallback = sections.length === 0 ? null : sections[0].id
+      // 落点固定是默认分组，按 id 取而不是取第一个：轨道传进来的是「可见分组」，
+      // 旧配置若把默认分组标成隐藏，取第一个就会把无归属行塞进别的分组。
+      const fallback = sections.length === 0
+        ? null
+        : (sections.find((section) => section.id === DEFAULT_SECTION_ID) ?? sections[0]).id
+      /*
+       * 出厂归属有三个来源，用户配置优先于全部：
+       *
+       *   stored            用户在导航配置页拖出来的归属
+       *   DEFAULT_GROUP_OF  历史产品清单推导出的默认表
+       *   SEEDS[].section   本壳自带行的出厂分组（更多、大肥鱼 DSH）
+       *
+       * 只查前两者时，自带行永远落到 fallback——它们不在那份历史清单里，于是
+       * 每次渲染都被拉回默认分组，拖动写入的归属看起来完全不生效。
+       *
+       * SEEDS 在本函数被调用时早已初始化（模块求值先于任何渲染），直接读即可。
+       */
+      const seedSection = new Map(SEEDS.map((row) => [String(row.id), row.section]))
       const resolve = (id) => {
-        const assigned = typeof stored[id] === 'string' ? stored[id] : DEFAULT_GROUP_OF[id]
+        const key = String(id)
+        const assigned = typeof stored[key] === 'string'
+          ? stored[key]
+          : (DEFAULT_GROUP_OF[key] ?? seedSection.get(key))
         if (assigned !== undefined && ids.has(assigned)) return assigned
         return fallback
       }
@@ -1970,16 +2028,22 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
       const hiddenSections = Array.isArray(config.hiddenSections) ? config.hiddenSections : DEFAULT_HIDDEN_SECTIONS
       const hiddenProducts = resolveHiddenProducts(config, products)
 
-      const [openSections, setOpenSections] = useState(
-        Array.isArray(config.openSections) && config.openSections.length > 0
-          ? config.openSections
-          : DEFAULT_OPEN_SECTIONS)
+      // 不再维护 openSections 的本地副本：展开状态唯一真相是 config.openSections，
+      // 读用 isSectionOpen、写用 save({ openSections })。
+
       // 正在编辑名称的分组 id；null 表示没有行处于编辑态。
       const [editing, setEditing] = useState(null)
       const [draftLabel, setDraftLabel] = useState('')
       // 拖动中的分组 id、拖动中的产品 id，以及当前落点分组 id。
       const [dragging, setDragging] = useState(null)
-      const [draggingProduct, setDraggingProduct] = useState(null)
+      const [draggingProduct, setDraggingProductState] = useState(null)
+      // 拖动中的产品同时写一份 ref：onDrop 与 onDragOver 可能在同一帧内到达，
+      // 那时 useState 的值还是上一次的。落点判定只认这个同步值，不认异步 state。
+      const draggingProductRef = useRef(null)
+      const setDraggingProduct = (value) => {
+        draggingProductRef.current = value
+        setDraggingProductState(value)
+      }
       // 多选的产品 id 集合：用于批量移动。拖动一次只能带一个，整理成批用这个。
       const [picked, setPicked] = useState(() => new Set())
       const [overRow, setOverRow] = useState(null)
@@ -2000,14 +2064,22 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
        * 先移除再插入，所以 from 原本在 to 之前时，移除会让 to 左移一格，插入点要
        * 相应减一；不减的话一半的拖动组合都会多走一格（10/20 实测）。
        */
-      const reorder = (from, to) => {
-        if (from === null || to === null || from === to) return
+      const reorder = (from, to, side) => {
+        if (from === null) return
+        // 拖到自己身上：只有落在上半/下半的语义时才有意义，落点是自己则不动。
+        if (to === from && side === undefined) return
         const order = orderIds()
         const source = order.indexOf(from)
-        const target = order.indexOf(to)
-        if (source === -1 || target === -1) return
+        if (source === -1) return
         order.splice(source, 1)
-        order.splice(source < target ? target - 1 : target, 0, from)
+        // 插入点按「移除 from 之后」的下标算，并且必须知道落点在哪一侧。
+        //
+        // 只给「插到 to 之前」这种说法在相邻行上会退化：to 恰好是 from 的下一行时，
+        // 移除后 to 左移一格，插回它前面就是原位——拖动看起来完全没生效。
+        // 所以侧别必须显式传入；to 为 null 表示追加到末尾。
+        const at = to === null ? order.length : order.indexOf(to)
+        if (at === -1) return
+        order.splice(side === 'after' ? at + 1 : at, 0, from)
         save({ sectionOrder: order })
       }
 
@@ -2023,7 +2095,6 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
           sectionOrder: [...orderIds(), id],
           openSections: open.filter((openId) => openId !== id),
         })
-        setOpenSections((current) => current.filter((openId) => openId !== id))
         setEditing(id)
         setDraftLabel(t('config.unnamed'))
       }
@@ -2069,7 +2140,9 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
       const moveProduct = (productId, toSection) => {
         const stored = { ...(config.productGroups ?? {}) }
         stored[productId] = toSection
-        save({ productGroups: stored })
+        // 归属变了，但同时把顺序补全：只改归属不碰顺序时，若这一行原本不在
+        // productOrder 里，它会在新组的末尾再按注册顺序落位，看起来「位置不对」。
+        save({ productGroups: stored, productOrder: fullOrder() })
       }
 
       /**
@@ -2081,15 +2154,50 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
        * @param to - 落点产品 id。
        * @param position - before 插到它前面，after 插到它后面。
        */
+      /**
+       * The complete row order, for rewriting `productOrder`.
+       *
+       * Starts from the stored order and appends any row it does not mention,
+       * following the order those rows currently render in. Writing a list that
+       * omits a row makes that row sink to the end (the sort treats a missing id
+       * as MAX_SAFE_INTEGER), which is how 「更多」 kept losing its position.
+       *
+       * @returns every known row id exactly once.
+       */
+      const fullOrder = () => {
+        const stored = Array.isArray(config.productOrder) ? config.productOrder : []
+        const known = grouped.map((entry) => String(entry.id))
+        const seen = new Set()
+        const out = []
+        for (const id of stored) {
+          const key = String(id)
+          // 丢弃已经不存在的行，避免越积越长的僵尸 id。
+          if (!known.includes(key) || seen.has(key)) continue
+          seen.add(key)
+          out.push(key)
+        }
+        for (const id of known) {
+          if (seen.has(id)) continue
+          seen.add(id)
+          out.push(id)
+        }
+        return out
+      }
+
       const reorderProduct = (from, to, position) => {
         if (from === null || to === null || from === to) return
-        const current = grouped.map((entry) => String(entry.id))
-        const source = current.indexOf(String(from))
-        const target = current.indexOf(String(to))
-        if (source === -1 || target === -1) return
+        // 以完整顺序为基准改写：漏掉任何一行，那一行就会沉到末尾
+        // （排序把缺失的 id 当作 MAX_SAFE_INTEGER）。
+        const current = fullOrder()
+        const key = String(from)
+        if (!current.includes(key)) current.push(key)
+        if (!current.includes(String(to))) return
+        const source = current.indexOf(key)
         current.splice(source, 1)
+        // 重新读取 to 的下标：移除 from 之后它可能已经左移。
         const at = current.indexOf(String(to))
-        current.splice(position === 'after' ? at + 1 : at, 0, String(from))
+        if (at === -1) return
+        current.splice(position === 'after' ? at + 1 : at, 0, key)
         save({ productOrder: current })
       }
 
@@ -2109,9 +2217,42 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
        * @param items - 本组的产品行。
        * @returns 标签容器。
        */
-      const chipList = (items) => {
+      /**
+       * 组内产品标签。
+       *
+       * @param items - 该分组的产品行；为空时渲染占位块。
+       * @param onDropInto - 空组接住拖动时的回调，用来把行归到这个分组。
+       * @returns 标签容器。
+       */
+      const chipList = (items, onDropInto) => {
         if (items.length === 0) {
-          return h('div', { className: 'pn-chips pn-chips-empty' }, t('config.noProducts'))
+          // 空分组同样要能接住拖来的行，否则新建的分组永远拖不进去——它没有标签
+          // 可以当落点，组行自己的 onDrop 又被这块占位盖住。
+          return h('div', {
+            className: 'pn-chips pn-chips-empty',
+            // 阻止冒泡：由本块接住并明确处理，避免与组行的落点重复计算。
+            onDragOver: (event) => {
+              if (draggingProductRef.current === null) return
+              event.preventDefault()
+              event.stopPropagation()
+              event.dataTransfer.dropEffect = 'move'
+              if (overTail) setOverTail(false)
+              if (overChip !== null) setOverChip(null)
+              overChipRef.current = null
+            },
+            onDrop: (event) => {
+              const dragging = draggingProductRef.current
+              if (dragging === null || onDropInto === undefined) return
+              event.preventDefault()
+              event.stopPropagation()
+              onDropInto(dragging)
+              setDraggingProduct(null)
+              setOverRow(null)
+              setOverChip(null)
+              setOverTail(false)
+              overChipRef.current = null
+            },
+          }, t('config.noProducts'))
         }
         return h('div', { className: 'pn-chips' },
           items.map((entry) => {
@@ -2124,9 +2265,13 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
             if (overChip !== null && overChip.id === entry.id && draggingProduct !== entry.id) {
               chipClass.push(overChip.position === 'before' ? 'is-drop-before' : 'is-drop-after')
             }
-            return h('label', {
+            // 容器用 div，不用 label：label 会在任意点击时激活内部复选框，
+            // 于是「拖动」与「选中」都会顺手切换显隐。复选框自己保留点击区，
+            // 拖动与选中各由手柄、文字承担。
+            return h('div', {
               key: entry.id,
               className: chipClass.join(' '),
+              // div 没有隐式拖动能力，这个属性是必需的（label 改为 div 时漏带过一次）。
               draggable: true,
               title: t('config.chipHint'),
               onClick: (event) => {
@@ -2154,7 +2299,11 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
               },
               // 落在另一枚标签上 = 组内重排。组行上的落点由 tr 的 onDrop 处理（改归属）。
               onDragOver: (event) => {
-                if (draggingProduct === null || draggingProduct === entry.id) return
+                // 读 ref，不读 state：setDraggingProduct 要下一个 tick 才生效，首帧拿到
+                // null 就会在 preventDefault 之前返回，浏览器因此不认这是可落点，
+                // 随后的 drop 根本不会触发——「跨一个不行、跨几个却行」就是这么来的。
+                const dragged = draggingProductRef.current
+                if (dragged === null || dragged === entry.id) return
                 // 阻止冒泡，否则会同时触发组行的「改归属」落点。
                 event.preventDefault()
                 event.stopPropagation()
@@ -2167,14 +2316,20 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
                   setOverChip({ id: entry.id, position })
                 }
                 if (overTail) setOverTail(false)
+                // 进入标签就离开行体：不清掉 overRow 的话整行高亮会一直留着。
+                if (overRow !== null) setOverRow(null)
               },
               onDrop: (event) => {
-                if (draggingProduct === null) return
+                const dragging = draggingProductRef.current
+                if (dragging === null) return
                 event.preventDefault()
                 event.stopPropagation()
+                // 跨组落到标签上时，先改归属再排位。目标组由 onDropInto 传入——
+                // chipList 定义在 row 之前，作用域里没有 section。
+                if (onDropInto !== undefined) onDropInto(dragging)
                 const live = overChipRef.current
                 const position = live !== null && live.id === entry.id ? live.position : 'before'
-                reorderProduct(draggingProduct, entry.id, position)
+                reorderProduct(dragging, entry.id, position)
                 setDraggingProduct(null)
                 setOverChip(null)
                 setOverRow(null)
@@ -2187,6 +2342,9 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
             h('input', {
               type: 'checkbox',
               checked: !isOff,
+              // 复选框自己的点击不该冒泡到容器的选中逻辑；也不该被当作拖动起点。
+              onClick: (event) => { event.stopPropagation() },
+              onMouseDown: (event) => { event.stopPropagation() },
               onChange: (event) => {
                 const next = event.target.checked
                   ? hiddenProducts.filter((id) => id !== entry.id)
@@ -2201,21 +2359,29 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
             key: '__tail__',
             className: overTail ? 'pn-chips-tail is-over' : 'pn-chips-tail',
             onDragOver: (event) => {
-              if (draggingProduct === null) return
+              if (draggingProductRef.current === null) return
               event.preventDefault()
               event.stopPropagation()
               event.dataTransfer.dropEffect = 'move'
               overChipRef.current = null
               if (overChip !== null) setOverChip(null)
               if (!overTail) setOverTail(true)
+              // 同理：进入尾部落点也要撤掉行体高亮。
+              if (overRow !== null) setOverRow(null)
             },
             onDragLeave: () => { if (overTail) setOverTail(false) },
             onDrop: (event) => {
-              if (draggingProduct === null) return
+              const dragging = draggingProductRef.current
+              if (dragging === null) return
               event.preventDefault()
               event.stopPropagation()
+              // 同标签落点：先归到本组，再排到最后。目标组同样由 onDropInto 传入。
+              if (onDropInto !== undefined) onDropInto(dragging)
+              // items 是本次渲染的旧切片，不含刚拖来的行：先把它补进去再排位，
+              // 否则第一次拖放进来的位置是按「没有这一行」的列表算的，要拖第二次才对。
+              const from = String(dragging)
               const list = items.map((row) => String(row.id))
-              const from = String(draggingProduct)
+              if (!list.includes(from)) list.push(from)
               const rest = list.filter((id) => id !== from)
               if (rest.length > 0) reorderProduct(from, rest[rest.length - 1], 'after')
               setDraggingProduct(null)
@@ -2263,34 +2429,38 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
           key: section.id,
           className: rowClass.join(' '),
           onDragOver: (event) => {
-            // Accept both a group row (reorder) and a product chip (change ownership).
-            if (dragging === null && draggingProduct === null) return
+            // 两种拖动都接受：分组（排序）与产品（改归属）。
+            // 一律读 ref——useState 慢一格，首帧读到 null 会让守卫失效、
+            // 于是整行点亮后没人清掉，表现为「拖完还留着高亮」。
+            const productDrag = draggingProductRef.current !== null
+            if (dragging === null && !productDrag) return
             event.preventDefault()
             event.dataTransfer.dropEffect = 'move'
-            // 产品拖动以整行为目标，不存在上半/下半之分。
             // 停在标签或尾部时由它们自己处理，组行不该同时整行点亮成「改归属」。
-            if (draggingProduct !== null && (overChip !== null || overTail)) return
-            const position = draggingProduct !== null ? 'into' : positionIn(event)
+            if (productDrag && (overChip !== null || overTail)) return
+            const position = productDrag ? 'into' : positionIn(event)
             if (overRow === null || overRow.id !== section.id || overRow.position !== position) {
               setOverRow({ id: section.id, position })
             }
           },
           onDragLeave: (event) => {
-            if (event.currentTarget.contains(event.relatedTarget)) return
+            // 拖动过程中 relatedTarget 通常是 null，用 contains 判断会漏掉清理，
+            // 高亮就留在原地。改成「只要离开本行就清」。
+            const to = event.relatedTarget
+            if (to !== null && event.currentTarget.contains(to)) return
             setOverRow((current) => (current !== null && current.id === section.id ? null : current))
           },
           onDrop: (event) => {
             event.preventDefault()
-            if (draggingProduct !== null) {
-              moveProduct(draggingProduct, section.id)
+            if (draggingProductRef.current !== null) {
+              moveProduct(draggingProductRef.current, section.id)
             } else if (dragging !== null) {
-              // 光标在下半 = 插到本行之后；reorder 按「移到某行位置」语义，
-              // 所以 after 要换算成下一行的 id，末行则移到自己即保持原位。
-              if (positionIn(event) === 'after') {
-                const nextSection = sections[index + 1]
-                reorder(dragging, nextSection === undefined ? section.id : nextSection.id)
+              // 直接把落点与侧别交给 reorder：末行下半用 null 表示追加。
+              const side = positionIn(event)
+              if (side === 'after' && sections[index + 1] === undefined) {
+                reorder(dragging, null, 'after')
               } else {
-                reorder(dragging, section.id)
+                reorder(dragging, section.id, side)
               }
             }
             setDragging(null)
@@ -2362,41 +2532,53 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
         // 这一列就叫「产品导航」，组内的行就排在这里。数字与批量按钮已去掉：标签直接可见，
         // 数量就是标签个数；批量按钮原本服务的是折叠态，而折叠态已不存在。
         h('td', { className: 'pn-cell-count pn-cell-chips' },
-          chipList(items)),
-        // 状态列：显示 / 隐藏
+          chipList(items, (productId) => { moveProduct(productId, section.id) })),
+        // 状态列：分组显示 / 隐藏
+        //
+        // 默认分组固定显示且不可关：它是所有无归属行的落点，注册不规范的子产品也落到
+        // 这里。允许隐藏它，那些行就没有去处了。开关保持可见但禁用，并写明原因——
+        // 直接不渲染会让人以为这一格坏了。
         h('td', { className: 'pn-cell-state' },
           h('label', { className: 'pn-switch' },
             h('input', {
               type: 'checkbox',
-              checked: !hidden,
-              // 默认分组也能隐藏。它是无归属产品的落点，但「落点」不等于「必须常驻」——
-              // 用户收起整片业务域时，不该被一个不能关的分组卡住。
+              checked: isDefault ? true : !hidden,
+              disabled: isDefault,
+              title: isDefault ? t('config.defaultAlwaysShown') : undefined,
               onChange: (event) => {
+                if (isDefault) return
                 const next = event.target.checked
                   ? hiddenSections.filter((id) => id !== section.id)
                   : [...hiddenSections, section.id]
                 save({ hiddenSections: next })
               },
             }),
-            h('span', { className: 'pn-switch-text' }, hidden ? t('config.hidden') : t('config.visible')))),
+            h('span', { className: 'pn-switch-text' },
+              isDefault
+                ? t('config.visible')
+                : (hidden ? t('config.hidden') : t('config.visible'))))),
         // 默认展开列
         h('td', { className: 'pn-cell-open' },
           h('label', { className: 'pn-switch' },
             h('input', {
               type: 'checkbox',
-              checked: openSections.includes(section.id),
+              // 与轨道共用同一个判定：读配置，不读本地副本。
+              checked: isSectionOpen(config, section.id),
+              // 默认分组恒展开且没有标题行，收起它没有意义，因此锁死。
+              disabled: isDefault,
+              title: isDefault ? t('config.defaultAlwaysShown') : undefined,
               onChange: (event) => {
+                if (isDefault) return
                 const checked = event.target.checked
                 const listed = Array.isArray(config.openSections) ? config.openSections : []
                 const next = checked
                   ? [...listed.filter((id) => id !== section.id), section.id]
                   : listed.filter((id) => id !== section.id)
-                save({ openSections: next, openSectionsTouched: true })
-                setOpenSections(next)
+                save({ openSections: next })
               },
             }),
             h('span', { className: 'pn-switch-text' },
-              openSections.includes(section.id) ? t('config.open') : t('config.openProducts')))),
+              isSectionOpen(config, section.id) ? t('config.open') : t('config.openProducts')))),
         // 操作列：删除（默认分组没有）
         h('td', { className: 'pn-cell-actions' },
           isDefault
@@ -2434,12 +2616,23 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
               const productRows = products
                 .map((entry) => String(entry.id))
                 .filter((id) => !builtIn.has(id))
+              // 恢复默认要把「用户自己加过的东西」一起清掉，不能只覆盖隐藏与展开：
+              // customSections（新建的分组）、sectionLabels（改过的名字）、
+              // sectionOrder（拖过的顺序）、productGroups 与 productOrder（拖过的归属）
+              // 都是用户的选择，留着它们就不是出厂状态——点名过的现象是重置后
+              // 仍有一个「新分组」挂在表格里。
+              //
+              // 因此这里写的是完整的一份，而不是与旧配置合并：没有列出的键就是没有。
               writeNavConfig({
                 hiddenSections: DEFAULT_HIDDEN_SECTIONS,
                 hiddenProducts: productRows,
                 openSections: DEFAULT_OPEN_SECTIONS,
+                customSections: [],
+                sectionLabels: {},
+                sectionOrder: [],
+                productGroups: {},
+                productOrder: [],
               })
-              setOpenSections(DEFAULT_OPEN_SECTIONS)
               setEditing(null)
             } }, t('config.reset')))),
         // 表格：每行一张白卡
@@ -2657,11 +2850,9 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
       // 导航偏好：配置页写、轨道读，两边共用同一份快照。
       const navConfig = props.useNavConfig((config) => config)
 
-      // 分组收展：默认展开集合来自配置，没有配置时回到「只展开 AI 域」的原型行为。
-      const [openSections, setOpenSections] = useState(() =>
-        Array.isArray(navConfig.openSections) && navConfig.openSections.length > 0
-          ? navConfig.openSections
-          : ['g-ai'])
+      // 分组收展不设本地副本：唯一真相是 navConfig.openSections，读走
+      // isSectionOpen、写走 writeNavConfig。此前这里另有一份 useState，出厂值还是
+      // ['g-ai']，与 DEFAULT_OPEN_SECTIONS 不一致，两个入口因此会显示不同的勾选。
       /**
        * 切换一个分组的展开状态。
        *
@@ -2669,8 +2860,8 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
        * state 只是「下次写配置的起点」——只改 state 不改配置，点击就不会有任何可见效果。
        * 与导航配置页走同一条路（`setOpenSections` + 写配置），两个入口才收敛到同一状态。
        *
-       * `openSectionsTouched` 一并置真：默认分组的「未改动过就按展开算」判定读的正是它，
-       * 否则收起默认分组会被当成没配置过而立刻又展开。
+       * 展开状态只在 `openSections` 里表达，没有第二个开关：所有分组同一套规则，
+       * 收起哪个就只影响哪个。
        *
        * @param id - 要切换的分组 id。
        */
@@ -2683,21 +2874,17 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
        * 写配置必须**重新读**再合并（同配置页的 `save`），不能用渲染时捕获的快照：快照里没有
        * 只存在于 storage 的键，展开一次分组就会把它们写丢，表现是本来隐藏的分组冒出来。
        *
-       * `openSectionsTouched` 只对默认分组置真。默认分组从不进 `openSections`，它的展开
-       * 完全由这个标记决定；在别的分组上置真会把默认分组一起收起。
+       * 默认分组也进 `openSections`（出厂就在里面），所以它和其他分组一样从配置页切换，
+       * 不需要额外标记。
        *
        * @param id - 要切换的分组 id。
        */
       const toggleSection = (id) => {
-        const next = openSections.includes(id)
-          ? openSections.filter((x) => x !== id)
-          : [...openSections, id]
-        setOpenSections(next)
-        writeNavConfig({
-          ...readNavConfig(),
-          openSections: next,
-          ...(id === 'g-default' ? { openSectionsTouched: true } : {}),
-        })
+        const current = isSectionOpen(navConfig, id)
+        // 从配置里取当前展开集合，再增删这一个 id：以 config 为准，不读渲染快照以外的副本。
+        const listed = Array.isArray(navConfig.openSections) ? navConfig.openSections : DEFAULT_OPEN_SECTIONS
+        const next = current ? listed.filter((x) => x !== id) : [...listed, id]
+        writeNavConfig({ ...readNavConfig(), openSections: next })
       }
 
       // 应用配置后的分组表：顺序、名称、显隐都在这里生效。
@@ -2716,40 +2903,34 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
         : listedSections
       const hiddenProducts = resolveHiddenProducts(navConfig, products)
 
-      // 隐藏分组只隐藏**分组标题**，组内产品要并入默认分组继续可见——用户藏的是一个
-      // 标题，不是一个功能入口。归组按产品的原始归属判断（此时产品已被归到默认分组）。
+      // 隐藏分组 = 整组不渲染（标题与产品都不画）。
+      //
+      // 早先的做法是把隐藏分组的产品改挂到默认分组继续显示，后果有三个：
+      // ① 「分组显示」开关看着没反应——行还在，只是换了标题；
+      // ② 隐藏分组在配置页里没有标签可接，拖过去的行无处落地；
+      // ③ 默认分组本就不画标题，藏它等于没有可见变化。
+      // 现在产品留在原分组，整组一起消失，三个问题一起消失。
       const hiddenSectionIds = new Set(
         Array.isArray(navConfig.hiddenSections) ? navConfig.hiddenSections : [],
       )
-      const originalGroupOf = (id) => {
-        const stored = navConfig.productGroups
-        const assigned = stored !== null && typeof stored === 'object' && typeof stored[id] === 'string'
-          ? stored[id]
-          : DEFAULT_GROUP_OF[id]
-        return assigned
+      const visibleSections = sections.filter((section) => !hiddenSectionIds.has(section.id))
+      // 隐藏分组的产品留在原分组，整组一起不渲染，所以这里没有"并入默认分组"这一步：
+      // 没有行被迁移，也就没有迁移后的排序。
+      const grouped = resolveGrouping(navConfig, visibleSections, products)
+      // 分组一次建好索引：原来每个分组都扫一遍 grouped 再线性查一遍隐藏列表，
+      // 复杂度是「分组数 × 行数」。这里先按归属归档并过滤掉隐藏行，
+      // 每个分组直接取自己那一份，渲染结果完全一致。
+      //
+      // 必须放在 grouped 之后：它是 const，提前读取会落进暂时性死区，
+      // 模块能加载、node --check 也过，只在轨道真正渲染时抛错。
+      const hiddenProductSet = new Set(hiddenProducts.map((id) => String(id)))
+      const rowsBySection = new Map()
+      for (const entry of grouped) {
+        if (hiddenProductSet.has(String(entry.id))) continue
+        const bucket = rowsBySection.get(entry.section)
+        if (bucket === undefined) rowsBySection.set(entry.section, [entry])
+        else bucket.push(entry)
       }
-
-      // 产品归组：注册项不带组别，组别来自配置，出厂默认兜底。
-      // 所属分组被隐藏的产品改挂默认分组，并且排到该组已有产品之后——`order` 决定组内
-      // 位置，沿用原位会让它们插进默认分组中间。
-      const defaultSection = sections.length === 0 ? null : sections[0].id
-      const assignedRows = resolveGrouping(navConfig, sections, products).map((entry) => {
-        if (!hiddenSectionIds.has(originalGroupOf(entry.id)) || defaultSection === null) return entry
-        return { ...entry, section: defaultSection }
-      })
-
-      // 组内排序用：并入默认分组的行排在原有行之后，并保持它们彼此的相对顺序。
-      const relocated = assignedRows.filter((entry) => hiddenSectionIds.has(originalGroupOf(entry.id)))
-      const relocatedIds = new Set(relocated.map((entry) => entry.id))
-      const settledMax = assignedRows
-        .filter((entry) => !relocatedIds.has(entry.id))
-        .reduce((max, entry) => Math.max(max, entry.order ?? 0), 0)
-      const grouped = assignedRows.map((entry) => {
-        if (!relocatedIds.has(entry.id)) return entry
-        // 逐个累加，避免同一批并入的产品挤到同一个 order 后顺序不稳。
-        const index = relocated.findIndex((candidate) => candidate.id === entry.id)
-        return { ...entry, order: settledMax + index + 1 }
-      })
 
       // 点「回到会话」时清掉本地选中项。
       //
@@ -2768,8 +2949,13 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
         // selectPanel(null) 又让 activePanel 保持 null，railId 一路兜到 null——
         // 产品行拿 null 去比 id 永不相等，选中底色因此永远不出现。
         const ownRow = id !== 'plugins'
+        // 先提交选中态：这一步很轻，浏览器可以在下一次绘制就画出高亮。
         setPickedRail(ownRow ? id : null)
-        props.selectRail(id)
+        // 换页是重活（对话界面要挂消息列表、Markdown、输入框）。放进 transition 后
+        // 它不再阻塞点击反馈：高亮先亮，页面随后渲染。总耗时不变，观感差别很大。
+        startTransition(() => {
+          props.selectRail(id)
+        })
       }
 
       const rail = h('nav', {
@@ -2840,14 +3026,14 @@ const DEFAULT_OPEN_SECTIONS = ['g-default', 'g-ai']
         className: 'pn-rail-scroll',
         style: { flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' },
       },
-        sections.map((section, sectionIndex) => {
+        visibleSections.map((section, sectionIndex) => {
         // 首组紧贴品牌行，它的标题不需要为「上一组的产品行」留出 10px。
         const isFirst = sectionIndex === 0
           // 组内按注册顺序排。`grouped` 是 products 的映射结果，其顺序来自插件注册先后，
           // 与产品在该组里的位置无关；不排序时，凡是靠后注册却归入这个组的产品会排到前面。
-          const items = grouped
-            .filter((entry) => entry.section === section.id)
-            .filter((entry) => !hiddenProducts.includes(entry.id))
+          // 归属与隐藏已在 rowsBySection 里处理过，这里只排自己那一份，且过滤掉
+          // 归属分组的行不会出现在别的组里，不必再逐组扫全表。
+          const items = (rowsBySection.get(section.id) ?? [])
             .slice()
             .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
           // 空分组仍画标题：新增分组后整组消失会让人以为"没生效"。
